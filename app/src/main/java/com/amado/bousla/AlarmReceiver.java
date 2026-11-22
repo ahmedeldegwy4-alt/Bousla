@@ -108,6 +108,12 @@ public class AlarmReceiver extends BroadcastReceiver {
                 openKind = "yreview";
                 break;
             }
+            case "test": {
+                nTitle = "🔔 بوصلة قلبك — إشعار تجريبي";
+                nText = "لو شايف الرسالة دي على الموبايل أو الساعة، التنبيهات شغالة ✓";
+                openKind = "test";
+                break;
+            }
             default:
                 return;
         }

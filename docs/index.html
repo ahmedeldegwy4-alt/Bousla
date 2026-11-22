@@ -550,8 +550,13 @@ function renderCompass(){
 
 /* ---------- edit ---------- */
 const KINDS={text:'إجابة مكتوبة',count:'رقم',list:'قائمة ٣ حاجات'};
+function testCard(){
+  if(!window.Android)return '';
+  if(!Android.testNotification)return '<div class="card due"><h3>🔔 جرّب الإشعار</h3><div>نزّل آخر نسخة من التطبيق عشان الزرار ده يشتغل.</div><div class="prow"><button class="gold" data-apk>تنزيل التحديث</button></div></div>';
+  return '<div class="card due"><h3>🔔 جرّب الإشعار</h3><div class="muted">اتأكد إن التنبيهات بتوصل الموبايل والساعة. «بعد دقيقة» عشان تقفل الشاشة وتجرّب.</div><div class="prow"><button class="gold" data-test="0">دلوقتي</button><button data-test="60">بعد دقيقة</button></div><div class="muted" id="testMsg"></div></div>';
+}
 function renderEdit(){
-  document.getElementById('edit').innerHTML=PILLARS.map((p,i)=>'<div class="pillar'+(openPillar==='e'+p.id?' open':'')+'"><div class="ph" data-etoggle="'+p.id+'"><div class="badge">'+AR(i+1)+'</div><div class="pt">'+esc(p.t)+'<div class="pmeta">'+AR(acts(p.id).length)+' أعمال</div></div><div class="chev">‹</div></div><div class="pb">'+
+  document.getElementById('edit').innerHTML=testCard()+PILLARS.map((p,i)=>'<div class="pillar'+(openPillar==='e'+p.id?' open':'')+'"><div class="ph" data-etoggle="'+p.id+'"><div class="badge">'+AR(i+1)+'</div><div class="pt">'+esc(p.t)+'<div class="pmeta">'+AR(acts(p.id).length)+' أعمال</div></div><div class="chev">‹</div></div><div class="pb">'+
     acts(p.id).map(a=>'<div class="erow"><span>'+esc(a.t)+'<small>'+esc(a.q)+(a.w?' · '+winTxt(a.w):'')+'</small></span><button class="ghost" data-del="'+p.id+'|'+a.id+'">حذف</button></div>').join('')+
     '<div class="card" style="margin-top:8px"><b>عمل جديد</b><label class="f">اسم العمل</label><input type="text" id="n-'+p.id+'"><label class="f">سؤال الإثبات</label><input type="text" id="q-'+p.id+'" placeholder="مثلاً: عملت إيه بالظبط؟">'+
     '<div class="grid2"><div><label class="f">نوع الإثبات</label><select id="k-'+p.id+'">'+Object.entries(KINDS).map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join('')+'</select></div><div><label class="f">أقل رقم (للنوع رقم)</label><input type="number" id="m-'+p.id+'" value="1"></div>'+
@@ -793,9 +798,11 @@ document.addEventListener('change',e=>{
   if(e.target.id==='qSurah'||e.target.id==='qReciter')loadSurah(document.getElementById('qSurah').value,document.getElementById('qReciter').value);
 });
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
+  const t=e.target.closest('[data-test],[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
   if(!t){if(e.target.id==='dlg')closeDlg();return;}
   const D=t.dataset;
+  if(D.test!==undefined){let r='';try{r=Android.testNotification(+D.test);}catch(e){}
+    const m=document.getElementById('testMsg');if(m)m.textContent=r==='ok'?(+D.test?'✓ الإشعار هيوصل بعد دقيقة — اقفل الشاشة دلوقتي.':'✓ اتبعت — بص على الموبايل والساعة.'):'الإشعارات مقفولة للتطبيق — فعّلها من الصفحة اللي اتفتحت وجرّب تاني.';return;}
   if(D.zk!==undefined){adTap(+D.zk);return;}
   if(D.adcat){adCat=D.adcat;renderAdhkar();window.scrollTo({top:0});return;}
   if(D.adlog){adLog(D.adlog);return;}

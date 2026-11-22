@@ -3,7 +3,11 @@ package com.amado.bousla;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.Manifest;
+import android.app.NotificationManager;
 import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.provider.Settings;
 import android.net.Uri;
 import android.os.Build;
 import android.webkit.JavascriptInterface;
@@ -62,6 +66,28 @@ public class Bridge {
 
     @JavascriptInterface
     public int getApkUpdate() { return Store.p(c).getInt("remoteApk", 0); }
+
+    /** Posts a test notification now (delaySec <= 0) or after delaySec seconds. */
+    @JavascriptInterface
+    public String testNotification(int delaySec) {
+        boolean allowed = Build.VERSION.SDK_INT < 33 ||
+                c.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+        NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (!allowed || !nm.areNotificationsEnabled()) {
+            try {
+                Intent i = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+                i.putExtra(Settings.EXTRA_APP_PACKAGE, c.getPackageName());
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                c.startActivity(i);
+            } catch (Exception ignored) {}
+            return "no_permission";
+        }
+        Intent i = Scheduler.alarmIntent(c, "test", "", "", 0, 0, false);
+        i.putExtra("code", 900010);
+        if (delaySec <= 0) new AlarmReceiver().onReceive(c, i);
+        else Scheduler.setAt(c, 900010, i, System.currentTimeMillis() + delaySec * 1000L);
+        return "ok";
+    }
 
     @JavascriptInterface
     public void openUrl(String url) {
