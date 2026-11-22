@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>بوصلة القلب</title>
+<title>بوصلة قلبك</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -12,6 +12,7 @@
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Tajawal',system-ui,sans-serif;font-size:16px;line-height:1.6}
 body{padding-bottom:86px}
 header{padding:18px 18px 4px;text-align:center}
+header .logo{display:block;margin:0 auto 4px;border-radius:15px}
 header h1{font-family:'Amiri',serif;font-size:30px;margin:0;color:var(--gold2)}
 header p{margin:0;color:var(--mute);font-size:14px}
 .wrap{max-width:640px;margin:0 auto;padding:0 14px}
@@ -106,7 +107,22 @@ label.f{display:block;font-size:13px;color:var(--mute);margin-top:6px}
 </head>
 <body>
 <header>
-  <h1>بوصلة القلب</h1>
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 108 108" width="64" height="64" class="logo">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="65%"><stop offset="0" stop-color="#1F4A40"/><stop offset="1" stop-color="#0B1916"/></radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#FFF3C4" stop-opacity=".9"/><stop offset="1" stop-color="#FFF3C4" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="108" height="108" rx="24" fill="url(#bg)"/>
+  <circle cx="54" cy="56" r="36" fill="none" stroke="#D9B45A" stroke-width="3"/>
+  <circle cx="54" cy="56" r="31" fill="none" stroke="#D9B45A" stroke-width="0.8" stroke-opacity=".5"/>
+  <path d="M54,20v5M90,56h-5M54,92v-5M18,56h5" stroke="#D9B45A" stroke-width="2.4" stroke-linecap="round"/>
+  <circle cx="54" cy="12" r="9" fill="url(#glow)"/>
+  <path d="M54,5 L55.6,10.4 L61,12 L55.6,13.6 L54,19 L52.4,13.6 L47,12 L52.4,10.4 Z" fill="#FFF3C4"/>
+  <path d="M54,27 L59,52 L49,52 Z" fill="#F0D28A"/>
+  <path d="M54,86 L50,66 L58,66 Z" fill="#3D8A68"/>
+  <path d="M54,70 L43.5,59.5 C40.5,56.5 40.5,51.5 43.5,48.8 C46.5,46 51,46.5 54,50 C57,46.5 61.5,46 64.5,48.8 C67.5,51.5 67.5,56.5 64.5,59.5 Z" fill="#E46B6B" stroke="#F0D28A" stroke-width="1.6" stroke-linejoin="round"/>
+</svg>
+  <h1>بوصلة قلبك</h1>
   <p>عشرة أسباب لمحبة الله — من وصايا ابن القيم</p>
 </header>
 <div class="wrap">
