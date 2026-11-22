@@ -222,8 +222,18 @@ function proofTxt(a,d){if(!d)return'';const v=d.v;if(a.k==='count')return AR(v);
 /* ---------- persistence: one doc per day + settings doc ---------- */
 let db=null,base=null,dirtyKeys=new Set(),writing=false,tmr=null;
 const setStatus=t=>document.getElementById('status').textContent=t;
-function lsSave(){try{localStorage.setItem(LS,JSON.stringify({settings,days}));}catch(e){}}
-function lsLoad(){try{const s=localStorage.getItem(LS);if(s){const o=JSON.parse(s);if(o.settings&&o.settings.actions)settings=o.settings;if(o.days)days=o.days;}}catch(e){}}
+function lsSave(){
+  const json=JSON.stringify({settings,days});
+  if(window.Android&&Android.saveData){try{Android.saveData(json);return;}catch(e){}}
+  try{localStorage.setItem(LS,json);}catch(e){}
+}
+function lsLoad(){
+  let s=null;
+  if(window.Android&&Android.loadData){try{s=Android.loadData();}catch(e){}}
+  if(!s){try{s=localStorage.getItem(LS);}catch(e){}}   // ترحيل من النسخة القديمة
+  if(s){try{const o=JSON.parse(s);if(o.settings&&o.settings.actions)settings=o.settings;if(o.days)days=o.days;
+    if(window.Android&&Android.saveData)Android.saveData(s);}catch(e){}}
+}
 function mark(key){lsSave();dirtyKeys.add(key);clearTimeout(tmr);tmr=setTimeout(flush,600);}
 async function flush(){
   if(!base||writing||!dirtyKeys.size)return;
@@ -297,13 +307,18 @@ function dueNow(){
   const h=new Date().getHours(),k=today(),now=Date.now();
   return allActs().filter(a=>a.w&&inWin(a.w,h)&&!peek(k).done[a.id]&&!pSkip(a.pid,k)&&!(snooze[a.id]>now));
 }
+function apkBanner(){
+  try{if(window.Android&&Android.getApkUpdate&&Android.getApkUpdate()>Android.getAppVersion())
+    return '<div class="card due"><h3>⬆ فيه نسخة جديدة من التطبيق</h3><div>نزّلها وثبّتها فوق القديمة — بياناتك مش هتتمسح.</div><div class="prow"><button class="gold" data-apk>تنزيل التحديث</button></div></div>';}catch(e){}
+  return '';
+}
 function renderForce(){
   const y=ago(1),f=document.getElementById('force');
   const hadData=Object.keys(days).some(k=>k<today());
-  if(hadData&&!peek(y).review){f.innerHTML='<div class="card force"><h3>⚖ ما حاسبتش نفسك امبارح</h3><div>قبل ما تكمّل يومك، اقفل حساب امبارح.</div><div class="prow"><button class="gold" data-rv="'+y+'">حاسب نفسك على امبارح</button></div></div>';return;}
+  if(hadData&&!peek(y).review){f.innerHTML=apkBanner()+'<div class="card force"><h3>⚖ ما حاسبتش نفسك امبارح</h3><div>قبل ما تكمّل يومك، اقفل حساب امبارح.</div><div class="prow"><button class="gold" data-rv="'+y+'">حاسب نفسك على امبارح</button></div></div>';return;}
   const h=new Date().getHours();
-  if(h>=21&&!peek(today()).review){f.innerHTML='<div class="card force"><h3>⚖ وقت المحاسبة</h3><div>«حاسبوا أنفسكم قبل أن تحاسبوا». قبل ما تنام، راجع يومك.</div><div class="prow"><button class="gold" data-rv="'+today()+'">ابدأ المحاسبة</button></div></div>';return;}
-  f.innerHTML='';
+  if(h>=21&&!peek(today()).review){f.innerHTML=apkBanner()+'<div class="card force"><h3>⚖ وقت المحاسبة</h3><div>«حاسبوا أنفسكم قبل أن تحاسبوا». قبل ما تنام، راجع يومك.</div><div class="prow"><button class="gold" data-rv="'+today()+'">ابدأ المحاسبة</button></div></div>';return;}
+  f.innerHTML=apkBanner();
 }
 function renderDue(){
   const list=dueNow(),el=document.getElementById('due');
@@ -446,9 +461,10 @@ function render(){renderToday();renderReview();renderCompass();renderEdit();sync
 function show(v){document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));window.scrollTo({top:0});}
 
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
+  const t=e.target.closest('[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
   if(!t){if(e.target.id==='dlg')closeDlg();return;}
   const D=t.dataset;
+  if(D.apk!==undefined){try{Android.openUrl('https://github.com/ahmedeldegwy4-alt/Bousla/releases/download/latest/Bousla.apk');}catch(e){}return;}
   if(t.matches('nav button')){if(D.v==='review')rvKey=(!peek(ago(1)).review&&days[ago(1)])?ago(1):today(),renderReview();show(D.v);return;}
   if(D.save){saveProof(D.save);return;}
   if(D.undo){delete day(today()).done[D.undo];closeDlg();mark(today());render();return;}

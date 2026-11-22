@@ -6,9 +6,10 @@ android {
         applicationId "com.amado.bousla"
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        versionCode((System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger())
+        versionName "1." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
     }
+    sourceSets { main { assets.srcDirs = ["$rootDir/docs"] } }
     buildTypes { release { minifyEnabled false } }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17

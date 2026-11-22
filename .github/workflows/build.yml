@@ -1,6 +1,11 @@
 name: Build APK
 on:
   push:
+    paths:
+      - 'app/**'
+      - '*.gradle'
+      - 'gradle.properties'
+      - '.github/workflows/**'
   workflow_dispatch:
 permissions:
   contents: write
@@ -28,4 +33,5 @@ jobs:
         run: |
           cp app/build/outputs/apk/debug/app-debug.apk Bousla.apk
           gh release delete latest --yes --cleanup-tag || true
-          gh release create latest Bousla.apk --title "بوصلة القلب — آخر نسخة" --notes "نزّل Bousla.apk وثبّته على الموبايل."
+          echo "${{ github.run_number }}" > version.txt
+          gh release create latest Bousla.apk version.txt --title "بوصلة القلب — آخر نسخة" --notes "نزّل Bousla.apk وثبّته على الموبايل."

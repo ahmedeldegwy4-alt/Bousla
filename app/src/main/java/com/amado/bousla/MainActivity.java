@@ -48,7 +48,8 @@ public class MainActivity extends Activity {
                 return true;
             }
         });
-        web.loadUrl("file:///android_asset/index.html");
+        loadPage();
+        Updater.check(this, this::onNewPage);
 
         if (Build.VERSION.SDK_INT >= 33 &&
                 checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -56,6 +57,19 @@ public class MainActivity extends Activity {
         }
         Scheduler.scheduleAll(this);
         handle(getIntent());
+    }
+
+    private void loadPage() {
+        loaded = false;
+        web.loadDataWithBaseURL("file:///android_asset/", Updater.currentPage(this), "text/html", "utf-8", null);
+    }
+
+    /** A newer page was downloaded: show it right away unless a dialog is open; otherwise on next resume. */
+    private boolean pageWaiting = false;
+    private void onNewPage() {
+        if (!loaded) { loadPage(); return; }
+        web.evaluateJavascript("(function(){var d=document.getElementById('dlg');return d&&d.classList.contains('on')?1:0})()",
+                v -> { if ("1".equals(v)) pageWaiting = true; else loadPage(); });
     }
 
     @Override
@@ -79,7 +93,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (loaded) web.evaluateJavascript("window.render&&render()", null);
+        if (pageWaiting) { pageWaiting = false; loadPage(); }
+        else if (loaded) web.evaluateJavascript("window.render&&render()", null);
+        Updater.check(this, this::onNewPage);
     }
 
     @Override
