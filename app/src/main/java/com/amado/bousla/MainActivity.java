@@ -32,6 +32,7 @@ public class MainActivity extends Activity {
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setAllowFileAccess(true);
+        s.setMediaPlaybackRequiresUserGesture(false);
         web.addJavascriptInterface(new Bridge(this), "Android");
         web.setWebViewClient(new WebViewClient() {
             @Override

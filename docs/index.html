@@ -77,6 +77,19 @@ textarea{min-height:80px;resize:vertical}
 .quote{font-family:'Amiri',serif;font-size:18px;text-align:center;color:var(--gold2);margin:14px 0;line-height:1.9}
 .dlg{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:flex-end;justify-content:center;z-index:10}
 .dlg.on{display:flex}
+.qref{background:#0f1f1c;border-right:3px solid var(--gold);border-radius:8px;padding:8px 10px;margin:6px 0;font-family:'Amiri',serif;font-size:17px;line-height:1.9;white-space:pre-wrap}
+.ayah{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0}
+.ayah.playing{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
+.ayah .tx{font-family:'Amiri',serif;font-size:23px;line-height:2.1;color:var(--ink)}
+.ayah .no{display:inline-grid;place-items:center;min-width:28px;height:28px;border-radius:50%;border:1px solid var(--gold);color:var(--gold2);font-size:13px;margin-inline-start:6px;font-family:'Tajawal'}
+.ayah .tf{display:none;margin-top:8px;padding:8px 10px;background:#0f1f1c;border-radius:10px;font-size:15px;color:#d6e4df;line-height:1.8}
+.ayah.showtf .tf{display:block}
+.ayah .tf small{display:block;color:var(--gold);font-size:12px}
+.ayah .prow button{padding:5px 10px;font-size:13px}
+.ayah.done-tdb{border-color:var(--ok)}
+.basmala{text-align:center;font-family:'Amiri',serif;font-size:22px;color:var(--gold2);margin:10px 0}
+.sess{position:sticky;top:0;z-index:3;background:#2b2a17;border:1px solid var(--gold);border-radius:14px;padding:10px 12px;margin:8px 0}
+.sess .prow button{padding:6px 10px;font-size:13px}
 .credit{text-align:center;margin:26px 0 10px;padding:14px 10px;border-top:1px solid var(--line);color:var(--mute);font-size:13.5px;line-height:1.9}
 .credit b{color:var(--gold2);font-family:'Amiri',serif;font-size:17px}
 .dlg .in{background:var(--card);border:1px solid var(--line);border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));max-width:640px;width:100%;max-height:88vh;overflow:auto}
@@ -115,6 +128,30 @@ label.f{display:block;font-size:13px;color:var(--mute);margin-top:6px}
     <div id="review"></div>
   </section>
 
+  <section class="view" id="v-quran">
+    <h2>القرآن — استماع وتفسير وتدبّر</h2>
+    <div class="card">
+      <div class="grid2">
+        <div><label class="f">السورة</label><select id="qSurah"></select></div>
+        <div><label class="f">القارئ</label><select id="qReciter">
+          <option value="ar.alafasy">مشاري العفاسي</option>
+          <option value="ar.husary">محمود خليل الحصري</option>
+          <option value="ar.minshawi">محمد صديق المنشاوي</option>
+          <option value="ar.abdulbasitmurattal">عبد الباسط عبد الصمد</option>
+          <option value="ar.mahermuaiqly">ماهر المعيقلي</option>
+        </select></div>
+      </div>
+      <div class="prow">
+        <button class="gold" id="qPlayAll">▶ استمع للسورة</button>
+        <button id="qPause" class="ghost">⏸ إيقاف</button>
+        <button id="qTafAll" class="ghost">📖 إظهار التفسير للكل</button>
+      </div>
+      <div class="muted" id="qMsg"></div>
+    </div>
+    <div id="qSession"></div>
+    <div id="qAyat"></div>
+  </section>
+
   <section class="view" id="v-compass">
     <h2>بوصلتك في آخر ٧ أيام</h2>
     <p class="muted">السهم القصير هو الاتجاه اللي محتاج تشتغل عليه.</p>
@@ -141,6 +178,7 @@ label.f{display:block;font-size:13px;color:var(--mute);margin-top:6px}
 <nav>
   <button data-v="today" class="on"><span class="ic">☀</span>اليوم</button>
   <button data-v="review"><span class="ic">⚖</span><span>المحاسبة<span id="rvDot"></span></span></button>
+  <button data-v="quran"><span class="ic">📖</span>القرآن</button>
   <button data-v="compass"><span class="ic">🧭</span>البوصلة</button>
   <button data-v="edit"><span class="ic">✎</span>الأعمال</button>
 </nav>
@@ -283,14 +321,18 @@ async function initDb(){
 /* ---------- proof dialog ---------- */
 function openDlg(html){const d=document.getElementById('dlg');document.getElementById('dlgIn').innerHTML=html;d.classList.add('on');}
 function closeDlg(){document.getElementById('dlg').classList.remove('on');}
-function proveDlg(aid){
+let dlgCtx={};
+function proveDlg(aid,ctx){
   const a=allActs().find(x=>x.id===aid);if(!a)return;
+  dlgCtx=ctx||{};
   const k=today(),prev=peek(k).done[aid];
   let body='';
-  if(a.k==='text')body='<textarea id="pv" placeholder="اكتب هنا…">'+esc(prev?prev.v:'')+'</textarea>';
-  if(a.k==='count')body='<input type="number" inputmode="numeric" id="pv" value="'+(prev?prev.v:'')+'" placeholder="'+(a.max!=null?'الحد: '+AR(a.max):'أقل حاجة: '+AR(a.min||1))+'">';
+  if(dlgCtx.prefix)body+='<div class="qref">'+esc(dlgCtx.prefix)+'</div>'+(dlgCtx.append&&prev?'<div class="muted">هيتضاف لتدبّرك السابق النهاردة.</div>':'');
+  const tv=dlgCtx.pre!=null?dlgCtx.pre:(prev&&!dlgCtx.append?prev.v:'');
+  if(a.k==='text')body+='<textarea id="pv" placeholder="'+(dlgCtx.ph||'اكتب هنا…')+'">'+esc(tv)+'</textarea>';
+  if(a.k==='count')body+='<input type="number" inputmode="numeric" id="pv" value="'+esc(tv)+'" placeholder="'+(a.max!=null?'الحد: '+AR(a.max):'أقل حاجة: '+AR(a.min||1))+'">';
   if(a.k==='list'){const v=prev?prev.v:[];for(let i=0;i<(a.n||3);i++)body+='<input type="text" class="pl" style="margin:4px 0" placeholder="'+AR(i+1)+'." value="'+esc(v[i]||'')+'">';}
-  if(a.k==='choice'){const v=prev?prev.v:[];body='<div class="chips">'+a.opts.map(o=>'<span class="chip'+(v.includes(o)?' on':'')+'" data-chip="'+esc(o)+'">'+esc(o)+'</span>').join('')+'</div>';}
+  if(a.k==='choice'){const v=prev?prev.v:[];body+='<div class="chips">'+a.opts.map(o=>'<span class="chip'+(v.includes(o)?' on':'')+'" data-chip="'+esc(o)+'">'+esc(o)+'</span>').join('')+'</div>';}
   const h=new Date().getHours();
   const note=a.w&&!inWin(a.w,h)?'<div class="muted" style="color:var(--warn)">ملاحظة: إنت برّه وقته ('+winTxt(a.w)+') — هيتسجل «متأخر».</div>':'';
   openDlg('<h3>'+esc(a.t)+'</h3><div class="muted">الإثبات: '+esc(a.q)+'</div>'+note+'<div style="margin-top:8px">'+body+'</div><div class="err" id="perr"></div>'+
@@ -298,7 +340,9 @@ function proveDlg(aid){
 }
 function saveProof(aid){
   const a=allActs().find(x=>x.id===aid);const err=m=>document.getElementById('perr').textContent=m;let v;
-  if(a.k==='text'){v=document.getElementById('pv').value.trim();if(v.length<(a.min||3))return err('الإثبات قصير — اكتب على الأقل '+AR(a.min||3)+' حروف بصدق.');v=v.slice(0,300);}
+  if(a.k==='text'){v=document.getElementById('pv').value.trim();if(v.length<(a.min||3))return err('الإثبات قصير — اكتب على الأقل '+AR(a.min||3)+' حروف بصدق.');v=v.slice(0,600);
+    if(dlgCtx.prefix)v=dlgCtx.prefix+' — '+v;
+    const pr=peek(today()).done[aid];if(dlgCtx.append&&pr&&pr.v)v=(pr.v+'\n'+v).slice(-1500);}
   if(a.k==='count'){v=Number(document.getElementById('pv').value);if(!isFinite(v)||document.getElementById('pv').value==='')return err('اكتب رقم.');
     if(a.max!=null&&v>a.max)return err('ده أكتر من الحد ('+AR(a.max)+'). ما يتحسبش — جاهد نفسك بكرة.');
     if(a.min!=null&&v<a.min)return err('لسه أقل من المطلوب ('+AR(a.min)+'). كمّل وارجع سجّل.');}
@@ -464,14 +508,115 @@ window.openFromNotif=function(kind,id){
   if(kind==='yreview'){rvKey=ago(1);renderReview();show('review');return;}
   if(id&&allActs().some(a=>a.id===id)){show('today');if(!peek(today()).done[id])proveDlg(id);}
 };
-function render(){renderToday();renderReview();renderCompass();renderEdit();syncNative();}
+
+/* ---------- القرآن: استماع + تفسير + تدبّر ---------- */
+const QAPI='https://api.alquran.cloud/v1/';
+let qSurahs=null,qData=null,qCur=-1,qPlaying=false,qSess={heard:new Set(),tafsir:new Set(),pages:new Set()},qLoadedKey='';
+const qAudio=new Audio();
+function qActId(i){const a=acts('p1');const want='p1a'+i;if(a.some(x=>x.id===want))return want;return a[i]?a[i].id:(a[0]?a[0].id:null);}
+function qMsg(t){const m=document.getElementById('qMsg');if(m)m.textContent=t||'';}
+function qPos(){return Object.assign({s:1,r:'ar.alafasy'},settings.quran||{});}
+async function qJson(url){const r=await fetch(url);if(!r.ok)throw new Error(r.status);const j=await r.json();if(j.code!==200)throw new Error(j.status);return j.data;}
+async function initQuran(){
+  const sel=document.getElementById('qSurah'),rc=document.getElementById('qReciter'),pos=qPos();
+  rc.value=pos.r;
+  if(!qSurahs){
+    qMsg('جارٍ تحميل الفهرس…');
+    try{qSurahs=await qJson(QAPI+'surah');}catch(e){qMsg('محتاج اتصال بالإنترنت عشان القرآن يتحمّل.');return;}
+    sel.innerHTML=qSurahs.map(x=>'<option value="'+x.number+'">'+AR(x.number)+'. '+esc(x.name.replace(/^سُورَةُ\s*/,''))+' ('+AR(x.numberOfAyahs)+')</option>').join('');
+  }
+  sel.value=pos.s;
+  loadSurah(pos.s,pos.r);
+}
+async function loadSurah(n,r){
+  const key=n+'|'+r;if(qLoadedKey===key&&qData)return;
+  qStop();qMsg('جارٍ تحميل السورة…');document.getElementById('qAyat').innerHTML='';
+  try{
+    const d=await qJson(QAPI+'surah/'+n+'/editions/quran-uthmani,ar.muyassar,'+r);
+    const txt=d.find(e=>e.edition.identifier==='quran-uthmani')||d[0],taf=d.find(e=>e.edition.identifier==='ar.muyassar')||d[1],aud=d.find(e=>e.edition.identifier===r)||d[2];
+    qData={n:+n,name:txt.name,ayat:txt.ayahs.map((a,i)=>{
+      let t=a.text;
+      if(+n!==1&&+n!==9&&i===0){const w=t.split(' ');if(w.length>4&&/^بِسْمِ/.test(w[0]))t=w.slice(4).join(' ');}
+      return {k:a.numberInSurah,t,page:a.page,tf:(taf.ayahs[i]||{}).text||'',au:(aud.ayahs[i]||{}).audio||''};})};
+    qLoadedKey=key;qMsg('');renderAyat();
+    if(!settings.quran||settings.quran.s!=+n||settings.quran.r!==r){settings.quran={s:+n,r};mark('settings');}
+  }catch(e){qMsg('ما قدرتش أحمّل السورة — اتأكد من الإنترنت وجرّب تاني.');}
+}
+function renderAyat(){
+  if(!qData)return;
+  const tdb=(peek(today()).done[qActId(2)]||{}).v||'';
+  let h=(qData.n!==1&&qData.n!==9)?'<div class="basmala">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>':'';
+  h+=qData.ayat.map((a,i)=>{
+    const ref='['+qData.name.replace(/^سُورَةُ\s*/,'')+': '+AR(a.k)+']';
+    const did=tdb.includes(ref);
+    const tfOn=qSess.tafsir.has(i)||document.getElementById('qTafAll').dataset.on==='1';
+    return '<div class="ayah'+(did?' done-tdb':'')+(tfOn?' showtf':'')+(i===qCur&&qPlaying?' playing':'')+'" id="ay'+i+'"><div class="tx">'+esc(a.t)+'<span class="no">'+AR(a.k)+'</span></div>'+
+      '<div class="tf"><small>التفسير الميسر</small>'+esc(a.tf)+'</div>'+
+      '<div class="prow"><button data-qplay="'+i+'">▶ استمع</button><button data-qtaf="'+i+'">📖 التفسير</button><button class="gold" data-qtdb="'+i+'">✍ تدبّر'+(did?' ✓':'')+'</button></div></div>';
+  }).join('');
+  document.getElementById('qAyat').innerHTML=h;
+  renderSess();
+}
+function qRange(set){const a=[...set].sort((x,y)=>x-y).map(i=>qData.ayat[i].k);if(!a.length)return'';return a.length===1?AR(a[0]):AR(a[0])+'–'+AR(a[a.length-1]);}
+function renderSess(){
+  const el=document.getElementById('qSession');if(!qData){el.innerHTML='';return;}
+  const nh=qSess.heard.size,nt=qSess.tafsir.size,np=qSess.pages.size;
+  if(!nh&&!nt){el.innerHTML='';return;}
+  el.innerHTML='<div class="sess"><b>جلسة النهاردة</b> <span class="muted">— سمعت '+AR(nh)+' آية · فسّرت '+AR(nt)+' · '+AR(np)+' صفحة</span><div class="prow">'+
+    (nh?'<button class="gold" data-qlog="listen">سجّل الاستماع</button>':'')+
+    (np?'<button data-qlog="wird">سجّل الورد ('+AR(np)+' ص)</button>':'')+
+    (nt?'<button data-qlog="tafsir">سجّل التفسير</button>':'')+'</div></div>';
+}
+function qMark(i,kind){
+  const a=qData.ayat[i];if(!a)return;
+  (kind==='h'?qSess.heard:qSess.tafsir).add(i);qSess.pages.add(a.page);renderSess();
+}
+function qStop(){try{qAudio.pause();}catch(e){}qPlaying=false;document.querySelectorAll('.ayah.playing').forEach(e=>e.classList.remove('playing'));}
+function qPlay(i,cont){
+  if(!qData||!qData.ayat[i]||!qData.ayat[i].au){qStop();return;}
+  qCur=i;qPlaying=!!cont;
+  document.querySelectorAll('.ayah.playing').forEach(e=>e.classList.remove('playing'));
+  const el=document.getElementById('ay'+i);if(el){el.classList.add('playing');el.scrollIntoView({behavior:'smooth',block:'center'});}
+  qAudio.src=qData.ayat[i].au;
+  qAudio.play().catch(()=>qMsg('دوس ▶ تاني عشان يبدأ الصوت.'));
+}
+qAudio.addEventListener('ended',()=>{
+  if(qCur>=0)qMark(qCur,'h');
+  if(qPlaying&&qData&&qCur+1<qData.ayat.length)qPlay(qCur+1,true);
+  else qStop();
+});
+qAudio.addEventListener('error',()=>{if(qData)qMsg('الصوت محتاج إنترنت.');});
+function qLog(kind){
+  if(!qData)return;
+  const nm=qData.name.replace(/^سُورَةُ\s*/,'');
+  if(kind==='listen')proveDlg(qActId(3),{pre:'سورة '+nm+' — آيات '+qRange(qSess.heard)});
+  if(kind==='wird')proveDlg(qActId(0),{pre:String(qSess.pages.size)});
+  if(kind==='tafsir')proveDlg(qActId(1),{prefix:'تفسير سورة '+nm+' ('+qRange(qSess.tafsir)+')',ph:'إيه أهم معنى فهمته من التفسير؟'});
+}
+function qTadabbur(i){
+  const a=qData.ayat[i],nm=qData.name.replace(/^سُورَةُ\s*/,'');
+  qSess.pages.add(a.page);
+  proveDlg(qActId(2),{prefix:'﴿'+a.t+'﴾ ['+nm+': '+AR(a.k)+']',ph:'إيه المعنى اللي وصل لقلبك؟ وهتعمل بيه إيه؟',append:true});
+}
+function render(){renderToday();renderReview();renderCompass();renderEdit();if(qData&&document.getElementById('v-quran').classList.contains('on'))renderAyat();syncNative();}
 function show(v){document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));window.scrollTo({top:0});}
 
+document.addEventListener('change',e=>{
+  if(e.target.id==='qSurah'||e.target.id==='qReciter')loadSurah(document.getElementById('qSurah').value,document.getElementById('qReciter').value);
+});
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
+  const t=e.target.closest('[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
   if(!t){if(e.target.id==='dlg')closeDlg();return;}
   const D=t.dataset;
+  if(D.qplay!==undefined){qPlay(+D.qplay,false);return;}
+  if(D.qtaf!==undefined){const el=document.getElementById('ay'+D.qtaf);el.classList.toggle('showtf');if(el.classList.contains('showtf'))qMark(+D.qtaf,'t');return;}
+  if(D.qtdb!==undefined){qTadabbur(+D.qtdb);return;}
+  if(D.qlog){qLog(D.qlog);return;}
+  if(t.id==='qPlayAll'){qPlay(qPlaying&&qCur>=0?qCur:0,true);return;}
+  if(t.id==='qPause'){qStop();return;}
+  if(t.id==='qTafAll'){const on=t.dataset.on!=='1';t.dataset.on=on?'1':'0';t.textContent=on?'📖 إخفاء التفسير':'📖 إظهار التفسير للكل';document.querySelectorAll('.ayah').forEach(x=>x.classList.toggle('showtf',on));return;}
   if(D.apk!==undefined){try{Android.openUrl('https://github.com/ahmedeldegwy4-alt/Bousla/releases/download/latest/Bousla.apk');}catch(e){}return;}
+  if(t.matches('nav button')&&t.dataset.v==='quran'){show('quran');initQuran();return;}
   if(t.matches('nav button')){if(D.v==='review')rvKey=(!peek(ago(1)).review&&days[ago(1)])?ago(1):today(),renderReview();show(D.v);return;}
   if(D.save){saveProof(D.save);return;}
   if(D.undo){delete day(today()).done[D.undo];closeDlg();mark(today());render();return;}
