@@ -100,9 +100,9 @@ public class Bridge {
     @JavascriptInterface
     public void testDhikr() {
         new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
-            String ph = AlarmReceiver.nextDhikr(c);
+            String[] ph = AlarmReceiver.nextDhikr(c);
             if (ph == null) return;
-            if (AlarmReceiver.notifyDhikr(c, ph) && Speaker.enabled(c)) Speaker.speak(c, ph, null);
+            if (AlarmReceiver.notifyDhikr(c, ph[0]) && Speaker.enabled(c)) Speaker.say(c, ph[1], ph[0], null);
         });
     }
 
@@ -116,7 +116,7 @@ public class Bridge {
     public void testSpeak() {
         Store.p(c).edit().putString("ttsStatus", "pending").apply();
         new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->
-                Speaker.speak(c, "بوصلة قلبك. التنبيهات الناطقة شغالة، الحمد لله.", null));
+                Speaker.say(c, "test", "بوصلة قلبك. التنبيهات الناطقة شغالة، الحمد لله.", null));
     }
 
     @JavascriptInterface

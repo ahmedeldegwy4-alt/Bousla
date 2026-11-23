@@ -53,9 +53,9 @@ public class AlarmReceiver extends BroadcastReceiver {
 
         if ("dhikr".equals(kind)) {
             Scheduler.scheduleDhikr(c);
-            String ph = nextDhikr(c);
+            String[] ph = nextDhikr(c);
             if (ph == null) return;
-            if (notifyDhikr(c, ph) && Speaker.enabled(c)) Speaker.speak(c, ph, goAsync());
+            if (notifyDhikr(c, ph[0]) && Speaker.enabled(c)) Speaker.say(c, ph[1], ph[0], goAsync());
             return;
         }
 
@@ -76,7 +76,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         String sd = st.optString("date", "");
         int hour = now.get(Calendar.HOUR_OF_DAY);
 
-        String nTitle, nText, openKind, say;
+        String nTitle, nText, openKind, say, clip;
         switch (kind) {
             case "start":
             case "follow": {
@@ -91,10 +91,12 @@ public class AlarmReceiver extends BroadcastReceiver {
                     nTitle = "⏰ " + title;
                     nText = "دلوقتي وقته. عملتها؟ دوس وسجّل الإثبات.";
                     say = "حان وقت " + title + ". عملتها؟";
+                    clip = "s_" + id;
                 } else {
                     nTitle = "لسه ما سجّلتش: " + title;
                     nText = "وقته قرب يخلص. ما تسيبهوش يفوت — وسجّل الإثبات.";
                     say = "لسه ما سجّلتش " + title + ". وقته قرب يخلص.";
+                    clip = "f_" + id;
                 }
                 openKind = "prove";
                 break;
@@ -105,6 +107,7 @@ public class AlarmReceiver extends BroadcastReceiver {
                 nTitle = "review".equals(kind) ? "⚖ وقت المحاسبة" : "⚖ لسه ما حاسبتش نفسك النهاردة";
                 nText = "«حاسبوا أنفسكم قبل أن تحاسبوا» — راجع يومك قبل ما تنام.";
                 openKind = "review";
+                clip = kind;
                 say = "review".equals(kind) ? "وقت المحاسبة. حاسبوا أنفسكم قبل أن تحاسبوا." : "لسه ما حاسبتش نفسك النهاردة.";
                 break;
             }
@@ -118,6 +121,7 @@ public class AlarmReceiver extends BroadcastReceiver {
                 nText = "اقفل حساب امبارح الأول، وبعدين ابدأ يومك.";
                 openKind = "yreview";
                 say = "ما حاسبتش نفسك امبارح. اقفل حساب امبارح الأول.";
+                clip = "ycheck";
                 break;
             }
             case "test": {
@@ -125,26 +129,30 @@ public class AlarmReceiver extends BroadcastReceiver {
                 nText = "لو شايف الرسالة دي على الموبايل أو الساعة، التنبيهات شغالة ✓";
                 openKind = "test";
                 say = "بوصلة قلبك. التنبيهات الناطقة شغالة، الحمد لله.";
+                clip = "test";
                 break;
             }
             default:
                 return;
         }
         boolean shown = notify(c, code, nTitle, nText, openKind, id, kind, title);
-        if (shown && Speaker.enabled(c)) Speaker.speak(c, say, goAsync());
+        if (shown && Speaker.enabled(c)) Speaker.say(c, clip, say, goAsync());
     }
 
     static final String CH_DHIKR = "bousla_dhikr";
 
     /** Rotates through the chosen phrases. */
-    static String nextDhikr(Context c) {
+    static String[] nextDhikr(Context c) {
         try {
             JSONObject d = new JSONObject(Store.p(c).getString("dhikr", "{}"));
             JSONArray l = d.optJSONArray("list");
             if (l == null || l.length() == 0) return null;
             int idx = Store.p(c).getInt("dhikrIdx", 0);
             Store.p(c).edit().putInt("dhikrIdx", idx + 1).apply();
-            return l.optString(idx % l.length());
+            JSONArray ids = d.optJSONArray("ids");
+            int k = idx % l.length();
+            String clip = ids != null && k < ids.length() && ids.optInt(k, -1) >= 0 ? "dk" + ids.optInt(k) : null;
+            return new String[]{l.optString(k), clip};
         } catch (Exception e) { return null; }
     }
 

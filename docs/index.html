@@ -595,7 +595,7 @@ function syncNative(){
   try{
     const sched=allActs().filter(a=>a.w).map(a=>({id:a.id,t:a.t,s:a.w[0],e:a.w[1]}));
     Android.setSchedule(JSON.stringify(sched));
-    if(Android.setDhikr)Android.setDhikr(JSON.stringify(dhikrCfg()));
+    if(Android.setDhikr){const dc=dhikrCfg();Android.setDhikr(JSON.stringify(Object.assign({},dc,{ids:dc.list.map(x=>DHIKR_PHRASES.indexOf(x))})));}
     const k=today(),y=ago(1);
     Android.setStatus(JSON.stringify({date:k,done:Object.keys(peek(k).done||{}),yDone:Object.keys(peek(y).done||{}),
       reviewed:!!peek(k).review,yReviewed:!!peek(y).review,hasHistory:Object.keys(days).some(x=>x<k)}));
