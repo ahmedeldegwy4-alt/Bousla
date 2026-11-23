@@ -656,6 +656,7 @@ function syncNative(){
 }
 window.openFromNotif=function(kind,id){
   if(kind==='prayer'){show('prayer');renderPrayerTab();return;}
+  if(kind==='today'){show('today');window.scrollTo({top:0});return;}
   if(kind==='wisdom'){show('today');window.scrollTo({top:0});return;}
   if(kind==='dhikr'){adCat=null;show('adhkar');renderAdhkar();return;}
   if(kind==='review'){rvKey=today();renderReview();show('review');return;}

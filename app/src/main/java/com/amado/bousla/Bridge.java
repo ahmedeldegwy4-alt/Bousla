@@ -34,6 +34,7 @@ public class Bridge {
     public void setStatus(String json) {
         if (json == null) return;
         Store.p(c).edit().putString("status", json).apply();
+        Widgets.updateAll(c);
     }
 
     /** The user's data lives in the app's own storage, so page updates never touch it. */
@@ -113,6 +114,7 @@ public class Bridge {
         if (json == null || json.equals(p.getString("adhan", ""))) return;
         p.edit().putString("adhan", json).commit();
         Scheduler.scheduleAdhan(c);
+        Widgets.updateAll(c);
     }
 
     @JavascriptInterface
@@ -132,6 +134,7 @@ public class Bridge {
         if (json == null || json.equals(p.getString("wisdom", ""))) return;
         p.edit().putString("wisdom", json).commit();
         Scheduler.scheduleWisdom(c);
+        Widgets.updateAll(c);
     }
 
     @JavascriptInterface

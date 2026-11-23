@@ -51,6 +51,8 @@ public class AlarmReceiver extends BroadcastReceiver {
             return;
         }
 
+        if ("widget".equals(kind)) { Widgets.updateAll(c); return; }
+
         if ("adhan".equals(kind)) {
             long when = in.getLongExtra("when", 0);
             Scheduler.scheduleAdhan(c);
