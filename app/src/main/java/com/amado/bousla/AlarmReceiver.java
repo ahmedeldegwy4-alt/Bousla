@@ -51,6 +51,14 @@ public class AlarmReceiver extends BroadcastReceiver {
             return;
         }
 
+        if ("dhikr".equals(kind)) {
+            Scheduler.scheduleDhikr(c);
+            String ph = nextDhikr(c);
+            if (ph == null) return;
+            if (notifyDhikr(c, ph) && Speaker.enabled(c)) Speaker.speak(c, ph, goAsync());
+            return;
+        }
+
         // Daily alarms re-arm themselves for tomorrow.
         if (in.getBooleanExtra("daily", false)) {
             Intent next = Scheduler.alarmIntent(c, kind, id, title, in.getIntExtra("h", 0), in.getIntExtra("m", 0), true);
@@ -68,7 +76,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         String sd = st.optString("date", "");
         int hour = now.get(Calendar.HOUR_OF_DAY);
 
-        String nTitle, nText, openKind;
+        String nTitle, nText, openKind, say;
         switch (kind) {
             case "start":
             case "follow": {
@@ -82,9 +90,11 @@ public class AlarmReceiver extends BroadcastReceiver {
                 if ("start".equals(kind)) {
                     nTitle = "⏰ " + title;
                     nText = "دلوقتي وقته. عملتها؟ دوس وسجّل الإثبات.";
+                    say = "حان وقت " + title + ". عملتها؟";
                 } else {
                     nTitle = "لسه ما سجّلتش: " + title;
                     nText = "وقته قرب يخلص. ما تسيبهوش يفوت — وسجّل الإثبات.";
+                    say = "لسه ما سجّلتش " + title + ". وقته قرب يخلص.";
                 }
                 openKind = "prove";
                 break;
@@ -95,6 +105,7 @@ public class AlarmReceiver extends BroadcastReceiver {
                 nTitle = "review".equals(kind) ? "⚖ وقت المحاسبة" : "⚖ لسه ما حاسبتش نفسك النهاردة";
                 nText = "«حاسبوا أنفسكم قبل أن تحاسبوا» — راجع يومك قبل ما تنام.";
                 openKind = "review";
+                say = "review".equals(kind) ? "وقت المحاسبة. حاسبوا أنفسكم قبل أن تحاسبوا." : "لسه ما حاسبتش نفسك النهاردة.";
                 break;
             }
             case "ycheck": {
@@ -106,18 +117,62 @@ public class AlarmReceiver extends BroadcastReceiver {
                 nTitle = "⚖ ما حاسبتش نفسك امبارح";
                 nText = "اقفل حساب امبارح الأول، وبعدين ابدأ يومك.";
                 openKind = "yreview";
+                say = "ما حاسبتش نفسك امبارح. اقفل حساب امبارح الأول.";
                 break;
             }
             case "test": {
                 nTitle = "🔔 بوصلة قلبك — إشعار تجريبي";
                 nText = "لو شايف الرسالة دي على الموبايل أو الساعة، التنبيهات شغالة ✓";
                 openKind = "test";
+                say = "بوصلة قلبك. التنبيهات الناطقة شغالة، الحمد لله.";
                 break;
             }
             default:
                 return;
         }
-        notify(c, code, nTitle, nText, openKind, id, kind, title);
+        boolean shown = notify(c, code, nTitle, nText, openKind, id, kind, title);
+        if (shown && Speaker.enabled(c)) Speaker.speak(c, say, goAsync());
+    }
+
+    static final String CH_DHIKR = "bousla_dhikr";
+
+    /** Rotates through the chosen phrases. */
+    static String nextDhikr(Context c) {
+        try {
+            JSONObject d = new JSONObject(Store.p(c).getString("dhikr", "{}"));
+            JSONArray l = d.optJSONArray("list");
+            if (l == null || l.length() == 0) return null;
+            int idx = Store.p(c).getInt("dhikrIdx", 0);
+            Store.p(c).edit().putInt("dhikrIdx", idx + 1).apply();
+            return l.optString(idx % l.length());
+        } catch (Exception e) { return null; }
+    }
+
+    static boolean notifyDhikr(Context c, String phrase) {
+        if (Build.VERSION.SDK_INT >= 33 &&
+                c.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return false;
+        NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(CH_DHIKR) == null) {
+            NotificationChannel ch = new NotificationChannel(CH_DHIKR, "ذكر على مدار اليوم", NotificationManager.IMPORTANCE_DEFAULT);
+            ch.setDescription("تذكير بذكر قصير كل فترة");
+            nm.createNotificationChannel(ch);
+        }
+        Intent open = new Intent(c, MainActivity.class);
+        open.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        open.putExtra("kind", "dhikr");
+        open.putExtra("id", "");
+        PendingIntent pi = PendingIntent.getActivity(c, 7999, open,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, CH_DHIKR) : new Notification.Builder(c);
+        b.setSmallIcon(R.drawable.ic_stat)
+                .setContentTitle("📿 " + phrase)
+                .setContentText("ذكر خفيف على اللسان، ثقيل في الميزان")
+                .setAutoCancel(true)
+                .setContentIntent(pi)
+                .setCategory(Notification.CATEGORY_REMINDER);
+        if (Build.VERSION.SDK_INT >= 26) b.setTimeoutAfter(20 * 60 * 1000L);
+        nm.notify(7999, b.build());
+        return true;
     }
 
     private static boolean has(JSONArray a, String id) {
@@ -126,10 +181,10 @@ public class AlarmReceiver extends BroadcastReceiver {
         return false;
     }
 
-    private static void notify(Context c, int code, String title, String text, String openKind,
+    private static boolean notify(Context c, int code, String title, String text, String openKind,
                                String id, String origKind, String actTitle) {
         if (Build.VERSION.SDK_INT >= 33 &&
-                c.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return;
+                c.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return false;
         ensureChannel(c);
         int notifId = 7000 + (code % 100000);
 
@@ -166,5 +221,6 @@ public class AlarmReceiver extends BroadcastReceiver {
 
         NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
         nm.notify(notifId, b.build());
+        return true;
     }
 }

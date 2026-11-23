@@ -90,6 +90,54 @@ public class Bridge {
     }
 
     @JavascriptInterface
+    public void setDhikr(String json) {
+        SharedPreferences p = Store.p(c);
+        if (json == null || json.equals(p.getString("dhikr", ""))) return;
+        p.edit().putString("dhikr", json).commit();
+        Scheduler.scheduleDhikr(c);
+    }
+
+    @JavascriptInterface
+    public void testDhikr() {
+        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+            String ph = AlarmReceiver.nextDhikr(c);
+            if (ph == null) return;
+            if (AlarmReceiver.notifyDhikr(c, ph) && Speaker.enabled(c)) Speaker.speak(c, ph, null);
+        });
+    }
+
+    @JavascriptInterface
+    public void setSpeak(boolean on) { Store.p(c).edit().putBoolean("speak", on).apply(); }
+
+    @JavascriptInterface
+    public boolean getSpeak() { return Speaker.enabled(c); }
+
+    @JavascriptInterface
+    public void testSpeak() {
+        Store.p(c).edit().putString("ttsStatus", "pending").apply();
+        new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->
+                Speaker.speak(c, "بوصلة قلبك. التنبيهات الناطقة شغالة، الحمد لله.", null));
+    }
+
+    @JavascriptInterface
+    public String getTtsStatus() { return Store.p(c).getString("ttsStatus", ""); }
+
+    @JavascriptInterface
+    public void openTtsSettings() {
+        try {
+            Intent i = new Intent("com.android.settings.TTS_SETTINGS");
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            c.startActivity(i);
+        } catch (Exception e) {
+            try {
+                Intent i = new Intent(android.speech.tts.TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                c.startActivity(i);
+            } catch (Exception ignored) {}
+        }
+    }
+
+    @JavascriptInterface
     public void openUrl(String url) {
         if (url == null || !url.startsWith("https://")) return;
         Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));

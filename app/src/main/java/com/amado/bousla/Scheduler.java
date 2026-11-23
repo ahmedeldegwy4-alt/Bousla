@@ -46,6 +46,39 @@ final class Scheduler {
         setDaily(c, CODE_REVIEW2, "review2", "", "", 22, 30);
         setDaily(c, CODE_YCHECK, "ycheck", "", "", 9, 30);
         p.edit().putString("codes", codes.toString()).apply();
+        scheduleDhikr(c);
+    }
+
+    static final int CODE_DHIKR = 900020;
+
+    /** Next dhikr reminder: every N minutes between from:00 and to:00. */
+    static void scheduleDhikr(Context c) {
+        AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
+        Intent i = alarmIntent(c, "dhikr", "", "", 0, 0, false);
+        i.putExtra("code", CODE_DHIKR);
+        am.cancel(broadcast(c, CODE_DHIKR, i));
+        try {
+            JSONObject d = new JSONObject(Store.p(c).getString("dhikr", "{}"));
+            if (!d.optBoolean("on", false)) return;
+            int every = Math.max(15, d.optInt("every", 60));
+            int from = d.optInt("from", 8), to = d.optInt("to", 22);
+            if (to <= from) to = from + 1;
+            Calendar now = Calendar.getInstance();
+            int m = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE);
+            int start = from * 60, end = to * 60, next;
+            if (m < start) next = start;
+            else next = start + ((m - start) / every + 1) * every;
+            Calendar cal = Calendar.getInstance();
+            cal.set(Calendar.SECOND, 0);
+            cal.set(Calendar.MILLISECOND, 0);
+            if (next > end) {
+                cal.add(Calendar.DAY_OF_YEAR, 1);
+                next = start;
+            }
+            cal.set(Calendar.HOUR_OF_DAY, next / 60);
+            cal.set(Calendar.MINUTE, next % 60);
+            setAt(c, CODE_DHIKR, i, cal.getTimeInMillis());
+        } catch (Exception ignored) {}
     }
 
     static Intent alarmIntent(Context c, String kind, String id, String title, int h, int m, boolean daily) {
