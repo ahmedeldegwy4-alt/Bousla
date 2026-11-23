@@ -51,6 +51,12 @@ public class AlarmReceiver extends BroadcastReceiver {
             return;
         }
 
+        if ("wisdom".equals(kind)) {
+            if (in.getBooleanExtra("daily", false)) Scheduler.scheduleWisdom(c);
+            notifyWisdom(c);
+            return;
+        }
+
         if ("dhikr".equals(kind)) {
             Scheduler.scheduleDhikr(c);
             String[] ph = nextDhikr(c);
@@ -141,6 +147,41 @@ public class AlarmReceiver extends BroadcastReceiver {
     }
 
     static final String CH_DHIKR = "bousla_dhikr";
+    static final String CH_WISDOM = "bousla_wisdom";
+
+    /** Same pick as the page: local day number modulo the list length. */
+    static boolean notifyWisdom(Context c) {
+        try {
+            JSONObject w = new JSONObject(Store.p(c).getString("wisdom", "{}"));
+            JSONArray items = w.optJSONArray("items");
+            if (items == null || items.length() == 0) return false;
+            long now = System.currentTimeMillis();
+            long day = (now + java.util.TimeZone.getDefault().getOffset(now)) / 86400000L;
+            JSONObject it = items.getJSONObject((int) (day % items.length()));
+            String k = it.optString("k");
+            String title = "q".equals(k) ? "📖 آية اليوم" : "h".equals(k) ? "💬 حديث اليوم" : "📜 حكمة من السلف";
+            String body = it.optString("t") + "\n— " + it.optString("src");
+            if (Build.VERSION.SDK_INT >= 33 &&
+                    c.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return false;
+            NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(CH_WISDOM) == null) {
+                NotificationChannel ch = new NotificationChannel(CH_WISDOM, "حكمة اليوم", NotificationManager.IMPORTANCE_DEFAULT);
+                ch.setDescription("آية أو حديث أو حكمة من السلف كل يوم");
+                nm.createNotificationChannel(ch);
+            }
+            Intent open = new Intent(c, MainActivity.class);
+            open.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            open.putExtra("kind", "wisdom");
+            open.putExtra("id", "");
+            PendingIntent pi = PendingIntent.getActivity(c, 7998, open,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, CH_WISDOM) : new Notification.Builder(c);
+            b.setSmallIcon(R.drawable.ic_stat).setContentTitle(title).setContentText(it.optString("t"))
+                    .setStyle(new Notification.BigTextStyle().bigText(body)).setAutoCancel(true).setContentIntent(pi);
+            nm.notify(7998, b.build());
+            return true;
+        } catch (Exception e) { return false; }
+    }
 
     /** Rotates through the chosen phrases. */
     static String[] nextDhikr(Context c) {

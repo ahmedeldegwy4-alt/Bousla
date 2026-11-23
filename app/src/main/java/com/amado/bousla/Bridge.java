@@ -108,6 +108,17 @@ public class Bridge {
     }
 
     @JavascriptInterface
+    public void setWisdom(String json) {
+        SharedPreferences p = Store.p(c);
+        if (json == null || json.equals(p.getString("wisdom", ""))) return;
+        p.edit().putString("wisdom", json).commit();
+        Scheduler.scheduleWisdom(c);
+    }
+
+    @JavascriptInterface
+    public void testWisdom() { AlarmReceiver.notifyWisdom(c); }
+
+    @JavascriptInterface
     public void setDhikr(String json) {
         SharedPreferences p = Store.p(c);
         if (json == null || json.equals(p.getString("dhikr", ""))) return;

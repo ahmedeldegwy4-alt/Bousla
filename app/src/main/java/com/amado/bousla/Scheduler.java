@@ -47,9 +47,23 @@ final class Scheduler {
         setDaily(c, CODE_YCHECK, "ycheck", "", "", 9, 30);
         p.edit().putString("codes", codes.toString()).apply();
         scheduleDhikr(c);
+        scheduleWisdom(c);
     }
 
     static final int CODE_DHIKR = 900020;
+    static final int CODE_WISDOM = 900030;
+
+    static void scheduleWisdom(Context c) {
+        AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
+        try {
+            JSONObject w = new JSONObject(Store.p(c).getString("wisdom", "{}"));
+            Intent i = alarmIntent(c, "wisdom", "", "", w.optInt("h", 8), w.optInt("m", 0), true);
+            i.putExtra("code", CODE_WISDOM);
+            am.cancel(broadcast(c, CODE_WISDOM, i));
+            if (!w.optBoolean("on", true) || w.optJSONArray("items") == null) return;
+            setAt(c, CODE_WISDOM, i, nextAt(w.optInt("h", 8), w.optInt("m", 0)));
+        } catch (Exception ignored) {}
+    }
 
     /** Next dhikr reminder: every N minutes between from:00 and to:00. */
     static void scheduleDhikr(Context c) {
