@@ -51,6 +51,15 @@ public class AlarmReceiver extends BroadcastReceiver {
             return;
         }
 
+        if ("adhan".equals(kind)) {
+            long when = in.getLongExtra("when", 0);
+            Scheduler.scheduleAdhan(c);
+            // skip a stale alarm (e.g. phone was off at prayer time)
+            if (when > 0 && System.currentTimeMillis() - when > 10 * 60 * 1000L) return;
+            startAdhan(c, title);
+            return;
+        }
+
         if ("wisdom".equals(kind)) {
             if (in.getBooleanExtra("daily", false)) Scheduler.scheduleWisdom(c);
             notifyWisdom(c);
@@ -148,6 +157,20 @@ public class AlarmReceiver extends BroadcastReceiver {
 
     static final String CH_DHIKR = "bousla_dhikr";
     static final String CH_WISDOM = "bousla_wisdom";
+
+    static void startAdhan(Context c, String prayerName) {
+        String sheikh = "refaat";
+        try { sheikh = new JSONObject(Store.p(c).getString("adhan", "{}")).optString("sheikh", "refaat"); } catch (Exception ignored) {}
+        Intent s = new Intent(c, AdhanService.class);
+        s.putExtra("prayer", prayerName);
+        s.putExtra("sheikh", sheikh);
+        try {
+            if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(s); else c.startService(s);
+        } catch (Exception e) {
+            // foreground start not allowed: at least show the notification
+            notify(c, 7996, "🕌 حان الآن موعد أذان " + prayerName, "«حيّ على الصلاة، حيّ على الفلاح»", "prayer", "", "adhan", prayerName);
+        }
+    }
 
     /** Same pick as the page: local day number modulo the list length. */
     static boolean notifyWisdom(Context c) {

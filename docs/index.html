@@ -56,7 +56,9 @@ button.gold{background:var(--gold);color:#1a1a10;border-color:var(--gold);font-w
 button.warn{border-color:var(--warn);color:var(--warn);background:transparent}
 button.ghost{background:transparent}
 button:disabled{opacity:.45;cursor:not-allowed}
-nav{position:fixed;bottom:0;left:0;right:0;background:#0b1715;border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:6px 2px calc(6px + env(safe-area-inset-bottom));z-index:5}
+nav{position:fixed;bottom:0;left:0;right:0;background:#0b1715;border-top:1px solid var(--line);display:flex;justify-content:space-around;overflow-x:auto;scrollbar-width:none;padding:6px 2px calc(6px + env(safe-area-inset-bottom));z-index:5}
+nav::-webkit-scrollbar{display:none}
+nav button{flex:1 0 auto;min-width:52px}
 nav.n7 button{font-size:10.5px;padding:4px 3px}
 nav button{background:none;border:none;color:var(--mute);font-size:11.5px;display:flex;flex-direction:column;align-items:center;gap:0;padding:4px 6px}
 nav button .ic{font-size:19px}
@@ -115,6 +117,15 @@ textarea{min-height:80px;resize:vertical}
 .mt-diff{background:rgba(232,165,75,.28);color:#ffd9a0;border-radius:4px;padding:0 2px}
 .mt-ref{color:var(--gold);font-size:13px;font-family:Tajawal}
 .mt-pair{border-top:1px dashed var(--line);padding-top:8px;margin-top:8px}
+.hc{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.hc .hd{font-size:11px;color:var(--mute)}
+.hc .c{background:var(--card2);border-radius:8px;padding:4px 0;min-height:46px;font-size:16px;font-weight:700;position:relative}
+.hc .c small{display:block;font-size:10px;font-weight:400;color:var(--mute)}
+.hc .c.today{outline:2px solid var(--gold2)}
+.hc .c.fast{background:#1d3a2c}
+.hc .c.big{background:#3a3a1e}
+.hc .c i{position:absolute;top:1px;left:0;right:0;font-size:8px;font-style:normal;color:var(--gold);line-height:1}
+.hc .c{padding-top:9px!important}
 .credit{text-align:center;margin:26px 0 10px;padding:14px 10px;border-top:1px solid var(--line);color:var(--mute);font-size:13.5px;line-height:1.9}
 .credit b{color:var(--gold2);font-family:'Amiri',serif;font-size:17px}
 .dlg .in{background:var(--card);border:1px solid var(--line);border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));max-width:640px;width:100%;max-height:88vh;overflow:auto}
@@ -231,6 +242,12 @@ label.f{display:block;font-size:13px;color:var(--mute);margin-top:6px}
     <p class="muted" style="text-align:center;margin-top:14px">النصوص من «حصن المسلم» — سعيد بن علي بن وهف القحطاني<br>بيانات: hisnul-muslim-data (CC BY 4.0)</p>
   </section>
 
+  <section class="view" id="v-prayer">
+    <div id="ptBox"></div>
+    <div id="adhanBox"></div>
+    <div id="hcal"></div>
+  </section>
+
   <section class="view" id="v-compass">
     <div class="seg"><button class="on" data-cmode="qibla">🕋 القبلة</button><button data-cmode="stats">🧭 بوصلتك</button></div>
     <div id="qiblaBox"></div>
@@ -267,6 +284,7 @@ label.f{display:block;font-size:13px;color:var(--mute);margin-top:6px}
   <button data-v="review"><span class="ic">⚖</span><span>المحاسبة<span id="rvDot"></span></span></button>
   <button data-v="quran"><span class="ic">📖</span>القرآن</button>
   <button data-v="adhkar"><span class="ic">📿</span>الأذكار</button>
+  <button data-v="prayer"><span class="ic">🕌</span>الصلاة</button>
   <button data-v="compass"><span class="ic">🧭</span>البوصلة</button>
   <button data-v="women" id="navWomen" style="display:none"><span class="ic">🌸</span>العذر</button>
   <button data-v="edit"><span class="ic">✎</span>الأعمال</button>
@@ -628,6 +646,7 @@ function syncNative(){
   try{
     const sched=allActs().filter(a=>a.w).map(a=>({id:a.id,t:a.t,s:a.w[0],e:a.w[1]}));
     Android.setSchedule(JSON.stringify(sched));
+    syncAdhan();
     if(Android.setWisdom)Android.setWisdom(JSON.stringify(Object.assign({},wisCfg(),{items:WISDOM})));
     if(Android.setDhikr){const dc=dhikrCfg();Android.setDhikr(JSON.stringify(Object.assign({},dc,{ids:dc.list.map(x=>DHIKR_PHRASES.indexOf(x))})));}
     const k=today(),y=ago(1);
@@ -636,6 +655,7 @@ function syncNative(){
   }catch(e){}
 }
 window.openFromNotif=function(kind,id){
+  if(kind==='prayer'){show('prayer');renderPrayerTab();return;}
   if(kind==='wisdom'){show('today');window.scrollTo({top:0});return;}
   if(kind==='dhikr'){adCat=null;show('adhkar');renderAdhkar();return;}
   if(kind==='review'){rvKey=today();renderReview();show('review');return;}
@@ -929,6 +949,72 @@ function renderPrayerTimes(){
   el.innerHTML=h;
 }
 
+
+/* ---------- تبويب الصلاة: الأذان والتقويم الهجري ---------- */
+const SHEIKHS=[['refaat','الشيخ محمد رفعت'],['abdulbasit','الشيخ عبد الباسط عبد الصمد'],['minshawi','الشيخ محمد صديق المنشاوي']];
+const ADHAN_PR=[['fajr','الفجر'],['dhuhr','الظهر'],['asr','العصر'],['maghrib','المغرب'],['isha','العشاء']];
+function adhanCfg(){return Object.assign({on:true,sheikh:'refaat',prayers:{fajr:true,dhuhr:true,asr:true,maghrib:true,isha:true}},settings.adhan||{});}
+let adhanSent='';
+function syncAdhan(){
+  if(!(window.Android&&Android.setAdhan)||!qbLoc)return;
+  const c=ptCfg(),a=adhanCfg(),times=[],d=new Date();d.setHours(0,0,0,0);
+  for(let i=0;i<30;i++){const day=new Date(d);day.setDate(d.getDate()+i);const t=ptCalc(day,qbLoc[0],qbLoc[1],c.method,c.asr);
+    ADHAN_PR.forEach(([k,n])=>{if(t[k])times.push([t[k].getTime(),k,n]);});}
+  const json=JSON.stringify({on:a.on,sheikh:a.sheikh,prayers:a.prayers,times});
+  const sig=json.slice(0,300)+times.length+(times[0]||[]).join();if(sig===adhanSent)return;adhanSent=sig;
+  try{Android.setAdhan(json);}catch(e){}
+}
+function renderAdhan(){
+  const el=document.getElementById('adhanBox');if(!el)return;const a=adhanCfg();
+  let h='<h2>تنبيه الأذان</h2><div class="card"><div class="hs"><b>🔊 الأذان في المواعيد</b><span class="chip'+(a.on?' on':'')+'" data-ad="toggle">'+(a.on?'✓ شغّال':'مقفول')+'</span></div>';
+  if(window.Android&&!Android.setAdhan)h+='<div class="due card" style="margin-top:8px">نزّل آخر نسخة من التطبيق عشان الأذان يشتغل.<div class="prow"><button class="gold" data-apk>تنزيل التحديث</button></div></div>';
+  h+='<label class="f">المؤذّن</label>'+SHEIKHS.map(([k,n])=>'<div class="hs" style="padding:6px 0;border-top:1px solid var(--line)"><span class="chip'+(a.sheikh===k?' on':'')+'" data-ads="'+k+'">'+(a.sheikh===k?'✓ ':'')+n+'</span><button class="ghost" data-adplay="'+k+'">▶ اسمع</button></div>').join('')+
+    '<label class="f">الصلوات</label><div class="chips">'+ADHAN_PR.map(([k,n])=>'<span class="chip'+(a.prayers[k]!==false?' on':'')+'" data-adp="'+k+'">'+n+'</span>').join('')+'</div>'+
+    '<div class="prow"><button class="ghost" data-ad="stop">⏹ إيقاف الصوت</button></div>'+
+    '<div class="muted">الأذان بيشتغل على صوت المنبّه. لو عايز توقفه وهو شغال، دوس «إيقاف الأذان» في الإشعار.</div></div>';
+  el.innerHTML=h;
+}
+let adPreview=null;
+function adPlay(k){
+  if(window.Android&&Android.testAdhan){try{Android.testAdhan(k);}catch(e){}return;}
+  try{if(adPreview)adPreview.pause();adPreview=new Audio('adhan/'+k+'.mp3');adPreview.play();}catch(e){}
+}
+let hcOff=0;
+const HMONTHS=['محرم','صفر','ربيع الأول','ربيع الآخر','جمادى الأولى','جمادى الآخرة','رجب','شعبان','رمضان','شوال','ذو القعدة','ذو الحجة'];
+function hcMark(h,g){
+  if(h.m===9)return ['big','🌙'];
+  if(h.m===10&&h.d===1)return ['big','عيد'];
+  if(h.m===12&&h.d===10)return ['big','عيد'];
+  if(h.m===12&&h.d===9)return ['fast','عرفة'];
+  if(h.m===1&&(h.d===9||h.d===10))return ['fast','عاشوراء'];
+  if(h.m===12&&h.d<9)return ['fast',''];
+  if(h.d>=13&&h.d<=15)return ['fast','بيض'];
+  if(g.getDay()===1||g.getDay()===4)return ['fast',''];
+  return ['',''];
+}
+function renderHijriCal(){
+  const el=document.getElementById('hcal');if(!el)return;
+  const t=new Date();t.setHours(12,0,0,0);
+  // walk to the first day of the target Hijri month
+  const ref=new Date(t);if(!hijriOf(ref)){el.innerHTML='';return;}
+  const toFirst=()=>{while(hijriOf(ref).d!==1)ref.setDate(ref.getDate()-1);};
+  toFirst();
+  for(let i=0;i<hcOff;i++){ref.setDate(ref.getDate()+32);toFirst();}
+  for(let i=0;i>hcOff;i--){ref.setDate(ref.getDate()-1);toFirst();}
+  const H=hijriOf(ref),cells=[];const start=new Date(ref);
+  for(let i=0;i<31;i++){const g=new Date(start);g.setDate(start.getDate()+i);const x=hijriOf(g);if(x.m!==H.m)break;cells.push([g,x]);}
+  const lead=(start.getDay()+1)%7; // week starts Saturday
+  let html='<h2>التقويم الهجري</h2><div class="card"><div class="hs"><button class="ghost" data-hc="-1">◀ السابق</button><b>'+HMONTHS[H.m-1]+' '+AR(H.y)+' هـ</b><button class="ghost" data-hc="1">التالي ▶</button></div>'+
+    '<div class="hc" style="margin-top:8px">'+['سبت','أحد','اثنين','ثلاثاء','أربعاء','خميس','جمعة'].map(d=>'<div class="hd">'+d+'</div>').join('')+'<div></div>'.repeat(lead);
+  const td=new Date().toDateString();
+  html+=cells.map(([g,x])=>{const [cls,lab]=hcMark(x,g);return '<div class="c '+cls+(g.toDateString()===td?' today':'')+'">'+(lab?'<i>'+lab+'</i>':'')+AR(x.d)+'<small>'+AR(g.getDate())+'/'+AR(g.getMonth()+1)+'</small></div>';}).join('');
+  html+='</div><div class="muted" style="margin-top:8px">🟩 أيام يُستحب صيامها (الاثنين والخميس، الأيام البيض، عرفة، عاشوراء، العشر الأوائل) · 🟨 رمضان والعيدين. التقويم حسب أم القرى، والبدايات الفعلية بالرؤية.</div></div>';
+  el.innerHTML=html;
+}
+function renderPrayerTab(){if(!qbLoc){try{const s=window.Android&&Android.getQiblaLoc&&Android.getQiblaLoc();if(s){const a=s.split(',').map(Number);if(a.length===2&&isFinite(a[0]))qbLoc=a;}}catch(e){}}
+  if(!qbLoc&&window.Android&&Android.qiblaStart){try{Android.qiblaStart();setTimeout(qiblaOff,15000);}catch(e){}}
+  renderPrayerTimes();renderAdhan();renderHijriCal();syncAdhan();}
+
 /* ---------- القبلة ---------- */
 const KAABA=[21.422487,39.826206];
 let qbLoc=null,qbHead=null,qbAcc=3,qbErr='',qbCont=null,qbAligned=false,qbMode='qibla';
@@ -958,9 +1044,9 @@ function renderQibla(){
   const el=document.getElementById('qiblaBox');if(!el)return;
   if(!qbLoc){try{const s=window.Android&&Android.getQiblaLoc&&Android.getQiblaLoc();if(s){const a=s.split(',').map(Number);if(a.length===2&&isFinite(a[0]))qbLoc=a;}}catch(e){}}
   let h='<h2>اتجاه القبلة</h2>';
-  if(!window.Android){el.innerHTML=h+'<div class="card muted">اتجاه القبلة ومواقيت الصلاة بيشتغلوا في تطبيق الموبايل، لأنهم محتاجين البوصلة والموقع.</div>';return;}
+  if(!window.Android){el.innerHTML=h+'<div class="card muted">اتجاه القبلة بيشتغل في تطبيق الموبايل، لأنه محتاج البوصلة والموقع.</div>';return;}
   if(!Android.qiblaStart){el.innerHTML=h+'<div class="card due">نزّل آخر نسخة من التطبيق عشان القبلة تشتغل.<div class="prow"><button class="gold" data-apk>تنزيل التحديث</button></div></div>';return;}
-  h+=qiblaDialSVG()+'<div class="qinfo"><div class="big" id="qMsgBig">…</div><div class="muted" id="qMsgSub"></div></div><div id="qMore"></div><div id="ptBox"></div>';
+  h+=qiblaDialSVG()+'<div class="qinfo"><div class="big" id="qMsgBig">…</div><div class="muted" id="qMsgSub"></div></div><div id="qMore"></div>';
   el.innerHTML=h;qbCont=null;updateQibla();renderPrayerTimes();
 }
 function updateQibla(){
@@ -986,7 +1072,7 @@ function updateQibla(){
     (qbAcc<2?'<div class="bad" style="margin-top:8px">البوصلة محتاجة معايرة: حرّك الموبايل في الهوا على شكل رقم ٨ كذا مرة، وابعد عن الحديد والمغناطيس.</div>':'')+
     '<div class="muted" style="margin-top:6px">حط الموبايل مسطّح على إيدك وبعيد عن أي حديد أو أجهزة.</div></div>';
 }
-window.onQiblaLoc=(lat,lon)=>{const first=!qbLoc;qbLoc=[lat,lon];qbErr=qbErr==='off'||qbErr==='denied'?'':qbErr;updateQibla();renderPrayerTimes();};
+window.onQiblaLoc=(lat,lon)=>{qbLoc=[lat,lon];qbErr=qbErr==='off'||qbErr==='denied'?'':qbErr;updateQibla();renderPrayerTimes();syncAdhan();};
 window.onHeading=(az,acc)=>{qbHead=az;qbAcc=acc;updateQibla();};
 window.onQiblaLocError=e=>{qbErr=e;updateQibla();};
 window.onHeadingError=e=>{qbErr=e;updateQibla();};
@@ -1125,14 +1211,20 @@ function show(v){if(v!=='compass')qiblaOff();document.querySelectorAll('.view').
 document.addEventListener('change',e=>{
   if(e.target.id==='wisH'){settings.wis=Object.assign(wisCfg(),{h:+e.target.value,m:0});mark('settings');syncNative();return;}
   if(e.target.id==='mtS'){mtSurah=+e.target.value;renderMutash();window.scrollTo({top:0});return;}
-  if(e.target.id==='ptMethod'||e.target.id==='ptAsr'){settings.pt={method:document.getElementById('ptMethod').value,asr:+document.getElementById('ptAsr').value};mark('settings');renderPrayerTimes();return;}
+  if(e.target.id==='ptMethod'||e.target.id==='ptAsr'){settings.pt={method:document.getElementById('ptMethod').value,asr:+document.getElementById('ptAsr').value};mark('settings');renderPrayerTimes();adhanSent='';syncAdhan();return;}
   if(e.target.id==='dkFrom'||e.target.id==='dkTo'){let f=+document.getElementById('dkFrom').value,t=+document.getElementById('dkTo').value;if(t<=f)t=Math.min(23,f+1);setDhikr({from:f,to:t});return;}
   if(e.target.id==='qSurah'||e.target.id==='qReciter'||e.target.id==='qTafsir')loadSurah(document.getElementById('qSurah').value,document.getElementById('qReciter').value,document.getElementById('qTafsir').value);
 });
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-wis],[data-bk],[data-mt],[data-mthz],[data-wtoggle],[data-wtype],[data-wday],[data-wstart],[data-wend],[data-wdel],[data-cmode],[data-qloc],[data-qlocset],[data-dk],[data-dkev],[data-dkph],[data-speak],[data-speaktest],[data-ttsset],[data-test],[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
+  const t=e.target.closest('[data-ad],[data-ads],[data-adp],[data-adplay],[data-hc],[data-wis],[data-bk],[data-mt],[data-mthz],[data-wtoggle],[data-wtype],[data-wday],[data-wstart],[data-wend],[data-wdel],[data-cmode],[data-qloc],[data-qlocset],[data-dk],[data-dkev],[data-dkph],[data-speak],[data-speaktest],[data-ttsset],[data-test],[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
   if(!t){if(e.target.id==='dlg')closeDlg();return;}
   const D=t.dataset;
+  if(D.ad==='toggle'){settings.adhan=Object.assign(adhanCfg(),{on:!adhanCfg().on});mark('settings');adhanSent='';syncAdhan();renderAdhan();return;}
+  if(D.ad==='stop'){try{Android.stopAdhan();}catch(e){}try{adPreview&&adPreview.pause();}catch(e){}return;}
+  if(D.ads){settings.adhan=Object.assign(adhanCfg(),{sheikh:D.ads});mark('settings');adhanSent='';syncAdhan();renderAdhan();return;}
+  if(D.adp){const a=adhanCfg(),pr=Object.assign({},a.prayers);pr[D.adp]=pr[D.adp]===false;settings.adhan=Object.assign(a,{prayers:pr});mark('settings');adhanSent='';syncAdhan();renderAdhan();return;}
+  if(D.adplay){adPlay(D.adplay);return;}
+  if(D.hc){hcOff+=+D.hc;renderHijriCal();return;}
   if(D.wis==='toggle'){settings.wis=Object.assign(wisCfg(),{on:!wisCfg().on});mark('settings');syncNative();renderEdit();return;}
   if(D.wis==='test'){try{Android.testWisdom();}catch(e){}return;}
   if(D.bk==='export'){const json=JSON.stringify({app:'bousla',v:1,at:new Date().toISOString(),settings,days});
@@ -1180,6 +1272,7 @@ document.addEventListener('click',e=>{
   if(t.id==='qTafAll'){const on=t.dataset.on!=='1';t.dataset.on=on?'1':'0';t.textContent=on?'📖 إخفاء التفسير':'📖 إظهار التفسير للكل';document.querySelectorAll('.ayah').forEach(x=>x.classList.toggle('showtf',on));return;}
   if(D.apk!==undefined){try{Android.openUrl('https://github.com/ahmedeldegwy4-alt/Bousla/releases/download/latest/Bousla.apk');}catch(e){}return;}
   if(t.matches('nav button')&&t.dataset.v==='quran'){show('quran');const cm=(document.querySelector('[data-qmode].on')||{}).dataset;setQMode(cm?cm.qmode:'listen');return;}
+  if(t.matches('nav button')&&t.dataset.v==='prayer'){show('prayer');renderPrayerTab();return;}
   if(t.matches('nav button')&&t.dataset.v==='women'){show('women');renderWomen();return;}
   if(t.matches('nav button')&&t.dataset.v==='compass'){show('compass');setCMode(qbMode);return;}
   if(t.matches('nav button')&&t.dataset.v==='adhkar'){adCat=null;show('adhkar');renderAdhkar();return;}

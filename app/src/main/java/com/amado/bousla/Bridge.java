@@ -108,6 +108,25 @@ public class Bridge {
     }
 
     @JavascriptInterface
+    public void setAdhan(String json) {
+        SharedPreferences p = Store.p(c);
+        if (json == null || json.equals(p.getString("adhan", ""))) return;
+        p.edit().putString("adhan", json).commit();
+        Scheduler.scheduleAdhan(c);
+    }
+
+    @JavascriptInterface
+    public void testAdhan(String sheikh) {
+        Intent s = new Intent(c, AdhanService.class);
+        s.putExtra("prayer", "(تجربة)");
+        s.putExtra("sheikh", sheikh);
+        try { if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(s); else c.startService(s); } catch (Exception ignored) {}
+    }
+
+    @JavascriptInterface
+    public void stopAdhan() { c.startService(new Intent(c, AdhanService.class).setAction("stop")); }
+
+    @JavascriptInterface
     public void setWisdom(String json) {
         SharedPreferences p = Store.p(c);
         if (json == null || json.equals(p.getString("wisdom", ""))) return;

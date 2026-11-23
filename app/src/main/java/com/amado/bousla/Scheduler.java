@@ -48,10 +48,40 @@ final class Scheduler {
         p.edit().putString("codes", codes.toString()).apply();
         scheduleDhikr(c);
         scheduleWisdom(c);
+        scheduleAdhan(c);
     }
 
     static final int CODE_DHIKR = 900020;
     static final int CODE_WISDOM = 900030;
+    static final int CODE_ADHAN = 900040;
+
+    /** Next enabled prayer from the list of upcoming times the page computed. */
+    static void scheduleAdhan(Context c) {
+        AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
+        Intent i = alarmIntent(c, "adhan", "", "", 0, 0, false);
+        i.putExtra("code", CODE_ADHAN);
+        am.cancel(broadcast(c, CODE_ADHAN, i));
+        try {
+            JSONObject a = new JSONObject(Store.p(c).getString("adhan", "{}"));
+            if (!a.optBoolean("on", false)) return;
+            JSONObject en = a.optJSONObject("prayers");
+            JSONArray t = a.optJSONArray("times");
+            if (t == null) return;
+            long now = System.currentTimeMillis();
+            for (int k = 0; k < t.length(); k++) {
+                JSONArray e = t.getJSONArray(k);
+                long ts = e.getLong(0);
+                String key = e.getString(1);
+                if (ts <= now + 5000) continue;
+                if (en != null && !en.optBoolean(key, true)) continue;
+                i.putExtra("id", key);
+                i.putExtra("title", e.optString(2, ""));
+                i.putExtra("when", ts);
+                setAt(c, CODE_ADHAN, i, ts);
+                return;
+            }
+        } catch (Exception ignored) {}
+    }
 
     static void scheduleWisdom(Context c) {
         AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
