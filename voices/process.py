@@ -40,7 +40,27 @@ def split_batch(b, tag):
     print(f'duration {dur:.1f}s, {len(gaps)} pauses found, need {n - 1}')
     if len(gaps) < n - 1:
         raise SystemExit('not enough pauses to split the batch')
-    cuts = sorted(m for _, m in sorted(gaps, reverse=True)[:n - 1])
+    # expected cut positions from each line's length (letters only, no diacritics)
+    lens = [max(1, len(re.sub(r'[\u064B-\u0652\u0670\s\W]', '', t))) for t in b.get('texts', [''] * n)]
+    tot = sum(lens); acc = 0; exp = []
+    for L in lens[:-1]:
+        acc += L; exp.append(dur * acc / tot)
+    cand = sorted(gaps, key=lambda g: g[1])
+    # DP: pick n-1 increasing pauses, each near its expected spot, preferring longer pauses
+    INF = float('inf'); m = len(cand)
+    cost = [[INF] * m for _ in range(n - 1)]; back = [[-1] * m for _ in range(n - 1)]
+    def c(j, i): return (cand[i][1] - exp[j]) ** 2 - 4.0 * cand[i][0]
+    for i in range(m): cost[0][i] = c(0, i)
+    for j in range(1, n - 1):
+        best, bi = INF, -1
+        for i in range(m):
+            if i > 0 and cost[j - 1][i - 1] < best: best, bi = cost[j - 1][i - 1], i - 1
+            if bi >= 0: cost[j][i] = best + c(j, i); back[j][i] = bi
+    i = min(range(m), key=lambda k: cost[n - 2][k]); picks = []
+    for j in range(n - 2, -1, -1):
+        picks.append(i); i = back[j][i]
+    cuts = [cand[k][1] for k in reversed(picks)]
+    print('expected', [round(x, 2) for x in exp]); print('pauses', [(round(g[1], 2), round(g[0], 2)) for g in cand])
     bounds = [0.0] + cuts + [dur]
     for i, name in enumerate(b['order']):
         encode(raw, f'{out}/{name}.mp3', bounds[i], bounds[i + 1])
