@@ -80,6 +80,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         switch (kind) {
             case "start":
             case "follow": {
+                if (today.equals(sd) && has(st.optJSONArray("ex"), id)) return; // فترة العذر
                 boolean done = false;
                 if (today.equals(sd)) done = has(st.optJSONArray("done"), id);
                 if (!done && hour < 6) {

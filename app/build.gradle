@@ -10,7 +10,20 @@ android {
         versionName "1." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
     }
     sourceSets { main { assets.srcDirs = ["$rootDir/docs"] } }
-    buildTypes { release { minifyEnabled false } }
+    // ثابت لكل النسخ عشان التحديث يتثبّت فوق القديم. كلمة السر في GitHub Secret اسمه BOUSLA_KEY_PASS
+    signingConfigs {
+        bousla {
+            storeFile file("bousla.jks")
+            storeType "pkcs12"
+            storePassword System.getenv("BOUSLA_KEY_PASS")
+            keyAlias "bousla"
+            keyPassword System.getenv("BOUSLA_KEY_PASS")
+        }
+    }
+    buildTypes {
+        debug { if (System.getenv("BOUSLA_KEY_PASS")) signingConfig signingConfigs.bousla }
+        release { minifyEnabled false; if (System.getenv("BOUSLA_KEY_PASS")) signingConfig signingConfigs.bousla }
+    }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17

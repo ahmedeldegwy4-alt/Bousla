@@ -23,7 +23,17 @@ jobs:
         with:
           gradle-version: '8.7'
       - run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+      - name: Restore signing key from secrets
+        env:
+          BOUSLA_KEYSTORE_B64: ${{ secrets.BOUSLA_KEYSTORE_B64 }}
+          BOUSLA_KEY_PASS: ${{ secrets.BOUSLA_KEY_PASS }}
+        run: |
+          if [ -z "$BOUSLA_KEYSTORE_B64" ] || [ -z "$BOUSLA_KEY_PASS" ]; then
+            echo "::error::Add BOUSLA_KEYSTORE_B64 and BOUSLA_KEY_PASS in Settings > Secrets and variables > Actions"; exit 1; fi
+          echo "$BOUSLA_KEYSTORE_B64" | base64 -d > app/bousla.jks
       - run: gradle :app:assembleDebug --no-daemon
+        env:
+          BOUSLA_KEY_PASS: ${{ secrets.BOUSLA_KEY_PASS }}
       - uses: actions/upload-artifact@v4
         with:
           name: bousla-apk
