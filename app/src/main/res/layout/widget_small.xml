@@ -1,11 +1,11 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/w_root" android:layout_width="match_parent" android:layout_height="match_parent"
-    android:orientation="vertical" android:gravity="center" android:padding="10dp"
+    android:orientation="vertical" android:gravity="center" android:padding="8dp"
     android:background="@drawable/widget_bg" android:layoutDirection="rtl">
     <TextView android:id="@+id/w_prayer" android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:textColor="#F0D28A" android:textSize="17sp" android:textStyle="bold" android:text="🕌 …"/>
+        android:textColor="#F0D28A" android:textSize="23sp" android:textStyle="bold" android:text="🕌 …"/>
     <Chronometer android:id="@+id/w_count" android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:textColor="#EEF3EF" android:textSize="15sp"/>
+        android:textColor="#EEF3EF" android:textSize="21sp" android:textStyle="bold"/>
     <TextView android:id="@+id/w_hijri" android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:textColor="#9FB7B0" android:textSize="12sp" android:maxLines="1" android:ellipsize="end"/>
+        android:textColor="#C9D8D3" android:textSize="15sp" android:maxLines="1" android:ellipsize="end"/>
 </LinearLayout>
