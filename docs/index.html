@@ -106,6 +106,11 @@ textarea{min-height:80px;resize:vertical}
 .bar{height:8px;background:#22332f;border-radius:6px;overflow:hidden;margin:6px 0}
 .bar i{display:block;height:100%;background:var(--ok);border-radius:6px}
 .hs{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.qdial{display:block;margin:4px auto 0;width:min(86vw,340px);height:auto}
+.qinfo{text-align:center;margin:6px 0}
+.qinfo .big{font-size:30px;font-weight:700;color:var(--gold2)}
+.qok{color:var(--ok)!important}
+#qRing{transition:transform .12s linear}
 .credit{text-align:center;margin:26px 0 10px;padding:14px 10px;border-top:1px solid var(--line);color:var(--mute);font-size:13.5px;line-height:1.9}
 .credit b{color:var(--gold2);font-family:'Amiri',serif;font-size:17px}
 .dlg .in{background:var(--card);border:1px solid var(--line);border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));max-width:640px;width:100%;max-height:88vh;overflow:auto}
@@ -211,6 +216,9 @@ label.f{display:block;font-size:13px;color:var(--mute);margin-top:6px}
   </section>
 
   <section class="view" id="v-compass">
+    <div class="seg"><button class="on" data-cmode="qibla">🕋 القبلة</button><button data-cmode="stats">🧭 بوصلتك</button></div>
+    <div id="qiblaBox"></div>
+    <div id="statsBox" style="display:none">
     <h2>بوصلتك في آخر ٧ أيام</h2>
     <p class="muted">السهم القصير هو الاتجاه اللي محتاج تشتغل عليه.</p>
     <svg class="compass" id="compass" viewBox="-215 -215 430 430"></svg>
@@ -218,6 +226,7 @@ label.f{display:block;font-size:13px;color:var(--mute);margin-top:6px}
     <table class="heat" id="heat"></table>
     <h2>أسباب تقصيرك</h2>
     <div id="reasons"></div>
+    </div>
   </section>
 
   <section class="view" id="v-edit">
@@ -830,17 +839,87 @@ function hzAction(kind){
   renderToday();
 }
 function hzReviewAll(s){(hz()[s]||[]).forEach(x=>hzRecord('r',s,x[0],x[1]));renderHifz('✓ اتسجّلت مراجعة '+SURAHS[s-1][0]+'.');renderToday();}
+
+/* ---------- القبلة ---------- */
+const KAABA=[21.422487,39.826206];
+let qbLoc=null,qbHead=null,qbAcc=3,qbErr='',qbCont=null,qbAligned=false,qbMode='qibla';
+const rad=d=>d*Math.PI/180,deg=r=>r*180/Math.PI;
+function qiblaBearing(lat,lon){const p1=rad(lat),p2=rad(KAABA[0]),dl=rad(KAABA[1]-lon);
+  const y=Math.sin(dl)*Math.cos(p2),x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl);return (deg(Math.atan2(y,x))+360)%360;}
+function kaabaKm(lat,lon){const R=6371,dp=rad(KAABA[0]-lat),dl=rad(KAABA[1]-lon);
+  const a=Math.sin(dp/2)**2+Math.cos(rad(lat))*Math.cos(rad(KAABA[0]))*Math.sin(dl/2)**2;return 2*R*Math.asin(Math.sqrt(a));}
+function qiblaDialSVG(){
+  let t='';for(let i=0;i<72;i++){const a=i*5,l=i%18===0?14:i%2===0?8:4;t+='<line x1="0" y1="-150" x2="0" y2="'+(-150+l)+'" stroke="'+(i%18===0?'#f0d28a':'#3d6a60')+'" stroke-width="'+(i%18===0?3:1.5)+'" transform="rotate('+a+')"/>';}
+  const lab=[['ش',0],['ق',90],['ج',180],['غ',270]].map(x=>'<text x="0" y="-118" text-anchor="middle" font-size="20" font-weight="700" fill="'+(x[1]===0?'#e46b6b':'#9fb7b0')+'" transform="rotate('+x[1]+')" font-family="Tajawal">'+x[0]+'</text>').join('');
+  return '<svg class="qdial" viewBox="-175 -185 350 360">'+
+   '<circle r="158" fill="#16302b" stroke="#2a4c45" stroke-width="2"/>'+
+   '<g id="qRing">'+t+lab+
+     '<g id="qKaaba"><line x1="0" y1="0" x2="0" y2="-100" stroke="#d9b45a" stroke-width="2" stroke-dasharray="4 5" opacity=".6"/>'+
+     '<g transform="translate(0,-150)"><circle r="17" fill="#0f1f1c" stroke="#d9b45a" stroke-width="2"/>'+
+     '<path d="M0,-9L9,-5.5L0,-2L-9,-5.5Z" fill="#555"/><path d="M-9,-5.5L0,-2L0,9L-9,5.5Z" fill="#111"/><path d="M0,-2L9,-5.5L9,5.5L0,9Z" fill="#222"/><path d="M-9,-2.8L0,0.7L0,2.4L-9,-1.1Z M0,0.7L9,-2.8L9,-1.1L0,2.4Z" fill="#e8c766"/></g></g>'+
+   '</g>'+
+   // fixed minaret needle = direction the phone points
+   '<g id="qNeedle"><path d="M-6,30 L-6,-52 L6,-52 L6,30Z" fill="#f0d28a"/><path d="M-9,-52 L9,-52 L7.5,-56 L-7.5,-56Z" fill="#d9b45a"/><path d="M-4.5,-56 L-4.5,-68 L4.5,-68 L4.5,-56Z" fill="#f0d28a"/><path d="M-7,-68 L7,-68 L6,-71 L-6,-71Z" fill="#d9b45a"/><path d="M-5,-71 Q-5,-80 0,-84 Q5,-80 5,-71Z" fill="#f0d28a"/><circle cy="-87" r="1.8" fill="#f0d28a"/>'+
+   '<path d="M-5,30 L0,62 L5,30Z" fill="#3d8a68"/></g>'+
+   '<path d="M-12,24 L-22,14 C-26,10 -26,3 -22,0 C-18,-4 -13,-3 -12,2 C-11,-3 -6,-4 -2,0 C2,3 2,10 -2,14Z" transform="translate(12,-2)" fill="#e46b6b" stroke="#f0d28a" stroke-width="1.5"/>'+
+   '<polygon points="0,-178 -9,-163 9,-163" fill="#f0d28a" id="qTop"/>'+
+  '</svg>';
+}
+function renderQibla(){
+  const el=document.getElementById('qiblaBox');if(!el)return;
+  if(!qbLoc){try{const s=window.Android&&Android.getQiblaLoc&&Android.getQiblaLoc();if(s){const a=s.split(',').map(Number);if(a.length===2&&isFinite(a[0]))qbLoc=a;}}catch(e){}}
+  let h='<h2>اتجاه القبلة</h2>';
+  if(!window.Android){el.innerHTML=h+'<div class="card muted">اتجاه القبلة بيشتغل في تطبيق الموبايل، لأنه محتاج البوصلة والموقع.</div>';return;}
+  if(!Android.qiblaStart){el.innerHTML=h+'<div class="card due">نزّل آخر نسخة من التطبيق عشان القبلة تشتغل.<div class="prow"><button class="gold" data-apk>تنزيل التحديث</button></div></div>';return;}
+  h+=qiblaDialSVG()+'<div class="qinfo"><div class="big" id="qMsgBig">…</div><div class="muted" id="qMsgSub"></div></div><div id="qMore"></div>';
+  el.innerHTML=h;qbCont=null;updateQibla();
+}
+function updateQibla(){
+  const big=document.getElementById('qMsgBig'),sub=document.getElementById('qMsgSub'),more=document.getElementById('qMore');if(!big)return;
+  if(qbErr==='denied'){big.textContent='محتاج إذن الموقع';sub.innerHTML='عشان أحسب اتجاه القبلة من مكانك. <button data-qloc>حاول تاني</button>';return;}
+  if(qbErr==='off'&&!qbLoc){big.textContent='الموقع مقفول';sub.innerHTML='شغّل الموقع (GPS) من الإعدادات. <button data-qlocset>افتح الإعدادات</button>';return;}
+  if(qbErr==='no_sensor'){big.textContent='الموبايل ما فيهوش بوصلة';sub.textContent=qbLoc?('القبلة '+AR(Math.round(qiblaBearing(qbLoc[0],qbLoc[1])))+'° من الشمال — استخدم بوصلة خارجية.'):'';return;}
+  if(!qbLoc){big.textContent='بحدّد مكانك…';sub.textContent='اتأكد إن الموقع شغّال.';return;}
+  const qb=qiblaBearing(qbLoc[0],qbLoc[1]);
+  document.getElementById('qKaaba').setAttribute('transform','rotate('+qb.toFixed(1)+')');
+  if(qbHead==null){big.textContent='القبلة '+AR(Math.round(qb))+'°';sub.textContent='حط الموبايل مسطّح على إيدك…';return;}
+  // continuous rotation so the ring doesn't spin the long way round at 0/360
+  const target=-qbHead;if(qbCont==null)qbCont=target;else{let d=((target-qbCont)%360+540)%360-180;qbCont+=d;}
+  document.getElementById('qRing').style.transform='rotate('+qbCont.toFixed(1)+'deg)';
+  const diff=((qb-qbHead)%360+540)%360-180,ad=Math.abs(diff);
+  const ok=ad<=4;
+  big.classList.toggle('qok',ok);
+  document.getElementById('qTop').setAttribute('fill',ok?'#5fc59a':'#f0d28a');
+  if(ok){big.textContent='✓ أنت متجه للقبلة';sub.textContent='المئذنة بتشاور على الكعبة';if(!qbAligned){try{navigator.vibrate&&navigator.vibrate([60,40,60]);}catch(e){}}}
+  else{big.textContent=(diff>0?'لِف يمين ':'لِف شمال ')+AR(Math.round(ad))+'°';sub.textContent='لف لحد ما الكعبة تبقى فوق المئذنة';}
+  qbAligned=ok;
+  more.innerHTML='<div class="card"><div class="hs"><span>اتجاه القبلة</span><b>'+AR(Math.round(qb))+'° من الشمال</b></div><div class="hs"><span>المسافة للكعبة</span><b>'+AR(Math.round(kaabaKm(qbLoc[0],qbLoc[1])).toLocaleString('ar-EG'))+' كم</b></div>'+
+    (qbAcc<2?'<div class="bad" style="margin-top:8px">البوصلة محتاجة معايرة: حرّك الموبايل في الهوا على شكل رقم ٨ كذا مرة، وابعد عن الحديد والمغناطيس.</div>':'')+
+    '<div class="muted" style="margin-top:6px">حط الموبايل مسطّح على إيدك وبعيد عن أي حديد أو أجهزة.</div></div>';
+}
+window.onQiblaLoc=(lat,lon)=>{qbLoc=[lat,lon];qbErr=qbErr==='off'||qbErr==='denied'?'':qbErr;updateQibla();};
+window.onHeading=(az,acc)=>{qbHead=az;qbAcc=acc;updateQibla();};
+window.onQiblaLocError=e=>{qbErr=e;updateQibla();};
+window.onHeadingError=e=>{qbErr=e;updateQibla();};
+function qiblaOn(){if(window.Android&&Android.qiblaStart){try{Android.qiblaStart();}catch(e){}}}
+function qiblaOff(){if(window.Android&&Android.qiblaStop){try{Android.qiblaStop();}catch(e){}}}
+function setCMode(m){qbMode=m;document.querySelectorAll('[data-cmode]').forEach(b=>b.classList.toggle('on',b.dataset.cmode===m));
+  document.getElementById('qiblaBox').style.display=m==='qibla'?'':'none';document.getElementById('statsBox').style.display=m==='stats'?'':'none';
+  if(m==='qibla'){renderQibla();qiblaOn();}else qiblaOff();}
 function render(){renderToday();renderReview();renderCompass();renderEdit();if(qData&&document.getElementById('v-quran').classList.contains('on'))renderAyat();if(document.getElementById('v-adhkar').classList.contains('on'))renderAdhkar();if(document.getElementById('qHifz').style.display!=='none')renderHifz();syncNative();}
-function show(v){document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));window.scrollTo({top:0});}
+function show(v){if(v!=='compass')qiblaOff();document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));window.scrollTo({top:0});}
 
 document.addEventListener('change',e=>{
   if(e.target.id==='dkFrom'||e.target.id==='dkTo'){let f=+document.getElementById('dkFrom').value,t=+document.getElementById('dkTo').value;if(t<=f)t=Math.min(23,f+1);setDhikr({from:f,to:t});return;}
   if(e.target.id==='qSurah'||e.target.id==='qReciter')loadSurah(document.getElementById('qSurah').value,document.getElementById('qReciter').value);
 });
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-dk],[data-dkev],[data-dkph],[data-speak],[data-speaktest],[data-ttsset],[data-test],[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
+  const t=e.target.closest('[data-cmode],[data-qloc],[data-qlocset],[data-dk],[data-dkev],[data-dkph],[data-speak],[data-speaktest],[data-ttsset],[data-test],[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
   if(!t){if(e.target.id==='dlg')closeDlg();return;}
   const D=t.dataset;
+  if(D.cmode){setCMode(D.cmode);return;}
+  if(D.qloc!==undefined){qbErr='';qiblaOn();updateQibla();return;}
+  if(D.qlocset!==undefined){try{Android.openLocationSettings();}catch(e){}return;}
   if(D.dk==='toggle'){setDhikr({on:!dhikrCfg().on});return;}
   if(D.dk==='test'){try{Android.testDhikr();}catch(e){}return;}
   if(D.dkev){setDhikr({every:+D.dkev});return;}
@@ -866,6 +945,7 @@ document.addEventListener('click',e=>{
   if(t.id==='qTafAll'){const on=t.dataset.on!=='1';t.dataset.on=on?'1':'0';t.textContent=on?'📖 إخفاء التفسير':'📖 إظهار التفسير للكل';document.querySelectorAll('.ayah').forEach(x=>x.classList.toggle('showtf',on));return;}
   if(D.apk!==undefined){try{Android.openUrl('https://github.com/ahmedeldegwy4-alt/Bousla/releases/download/latest/Bousla.apk');}catch(e){}return;}
   if(t.matches('nav button')&&t.dataset.v==='quran'){show('quran');if(document.getElementById('qHifz').style.display==='none')initQuran();else renderHifz();return;}
+  if(t.matches('nav button')&&t.dataset.v==='compass'){show('compass');setCMode(qbMode);return;}
   if(t.matches('nav button')&&t.dataset.v==='adhkar'){adCat=null;show('adhkar');renderAdhkar();return;}
   if(t.matches('nav button')){if(D.v==='review')rvKey=(!peek(ago(1)).review&&days[ago(1)])?ago(1):today(),renderReview();show(D.v);return;}
   if(D.save){saveProof(D.save);return;}
@@ -887,6 +967,7 @@ document.addEventListener('click',e=>{
   if(t.id==='resetActs'){openDlg('<p>ترجع الأعمال الافتراضية؟ اللي ضفته هيتشال (سجل الأيام هيفضل).</p><div class="prow"><button class="gold" id="dlgOk">أيوه</button><button class="ghost" data-close>لا</button></div>');return;}
   if(t.id==='dlgOk'){settings.actions=defaults();settings.removed=[];settings.defv=DEFV;closeDlg();mark('settings');render();return;}
 });
+document.addEventListener('visibilitychange',()=>{if(document.hidden)qiblaOff();else if(qbMode==='qibla'&&document.getElementById('v-compass').classList.contains('on'))qiblaOn();});
 let lastDay=today();
 setInterval(()=>{if(today()!==lastDay){lastDay=today();suggestFor=null;rvKey=null;render();}else renderToday();syncNative();},60000);
 initDb();

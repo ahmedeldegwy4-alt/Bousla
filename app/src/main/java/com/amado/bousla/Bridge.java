@@ -90,6 +90,24 @@ public class Bridge {
     }
 
     @JavascriptInterface
+    public void qiblaStart() { MainActivity a = MainActivity.current; if (a != null) a.startCompass(); }
+
+    @JavascriptInterface
+    public void qiblaStop() { MainActivity a = MainActivity.current; if (a != null) a.stopCompass(); }
+
+    @JavascriptInterface
+    public String getQiblaLoc() { return Store.p(c).getString("qloc", ""); }
+
+    @JavascriptInterface
+    public void openLocationSettings() {
+        try {
+            Intent i = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            c.startActivity(i);
+        } catch (Exception ignored) {}
+    }
+
+    @JavascriptInterface
     public void setDhikr(String json) {
         SharedPreferences p = Store.p(c);
         if (json == null || json.equals(p.getString("dhikr", ""))) return;
