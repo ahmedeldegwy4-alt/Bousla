@@ -4,8 +4,7 @@ jobs:
   d:
     runs-on: ubuntu-latest
     steps:
-
-|
+      - run: |
           set +e
           for p in Cairo Saudi Algeria Morocco UAE USA noor Khashia Mix Sudais Dosari Afasi Abdulbasit Baqarah Tafseer Qatar Qatar106 Bahrain Jordan Kuwait Oman Pakistan Palestine Sharjah; do
             curl -sL -m 15 -A "Mozilla/5.0 (Linux; Android 14)" "https://surahquran.com/Radio-Quran-$p.html" -o p.html
