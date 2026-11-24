@@ -5,5 +5,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          curl -sL -m 15 -A "Mozilla/5.0 (Linux; Android 14)" "https://surahquran.com/Radio-Quran-Saudi.html" -o s.html -w 'code=%{http_code}\n'; wc -c s.html
-          grep -oiE '(src|href|file|url|data-[a-z]+)\s*[=:]\s*["'"'"'][^"'"'"']+' s.html | grep -viE '\.(png|jpg|svg|css|webp|ico)|Radio-Quran-|facebook|twitter' | sort -u | head -60
+          for p in Cairo Saudi Algeria Morocco UAE USA noor Khashia Mix Sudais Dosari Afasi Abdulbasit Baqarah Tafseer Qatar Qatar106 Bahrain Jordan Kuwait Oman Pakistan Palestine Sharjah; do
+            curl -sL -m 15 -A "Mozilla/5.0 (Linux; Android 14)" "https://surahquran.com/Radio-Quran-$p.html" -o p.html
+            for u in $(grep -oE 'data-src="[^"]+' p.html | sed 's/data-src="//' | sort -u); do
+              r=$(curl -sL -m 6 -r 0-3000 -o /dev/null -w '%{http_code} %{content_type} %{url_effective}' "$u" 2>/dev/null)
+              echo "ST|$p|$u|$r"
+            done
+          done
