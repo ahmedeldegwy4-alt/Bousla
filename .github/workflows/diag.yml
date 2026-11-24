@@ -7,7 +7,11 @@ jobs:
       - run: |
           set +e
           curl -sL -m 15 -A "Mozilla/5.0 (Linux; Android 14)" https://surahquran.com/mp3/Al-Ghamdi -o g.html
-          grep -oiE '(mp3|audio|server|\.net|\.com)[^"<> ]{0,120}' g.html | grep -viE 'surahquran.com/(mp3/[A-Z]|[0-9]+\.html|Tajweed|Radio|css|js|img)|facebook|google|twitter|png|jpg|webp|svg|font' | sort -u | head -40
-          echo ---; grep -oE '<script[^>]*src="[^"]+"' g.html
-          echo ---; grep -oE '<a [^>]*href="[^"]+"' g.html | sed -n '40,60p'
-          echo ---; sed -n '/<audio/,/<\/audio>/p' g.html | head -5
+          python3 - <<'PY'
+          import re
+          s=open('g.html',encoding='utf-8').read()
+          for m in re.finditer(r'<script(?![^>]*src)[^>]*>(.*?)</script>',s,re.S):
+              t=m.group(1).strip()
+              if t and 'adsbygoogle' not in t[:60]: print('SCRIPT>>',t[:1500].replace('\n',' '))
+          i=s.find('الفاتحة'); print('CTX>>',re.sub(r'\s+',' ',s[i-800:i+600]))
+          PY
