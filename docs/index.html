@@ -143,6 +143,7 @@ textarea{min-height:80px;resize:vertical}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 label.f{display:block;font-size:13px;color:var(--mute);margin-top:6px}
 .rst{display:flex;gap:10px;align-items:center;padding:9px 6px;border-top:1px solid rgba(255,255,255,.07);cursor:pointer}.rst>span{width:28px;text-align:center;font-size:18px}.rst.sel{background:rgba(212,175,55,.12);border-radius:10px}
+#dlg.tjm{display:none!important}#tjView{position:fixed;inset:0;z-index:200;background:#0d1f1b;display:none;flex-direction:column}#tjView iframe{flex:1;border:0;width:100%;background:#fff}.tjbar{display:flex;align-items:center;gap:8px;padding:10px;background:#12302a}.tjbar b{flex:1;text-align:center}.tjbar button,.tjfoot button{background:rgba(212,175,55,.18);color:#f1d77a;border:0;border-radius:10px;padding:8px 12px;font:inherit}.tjfoot{padding:8px;text-align:center;background:#12302a}.tjload{padding:12px;text-align:center}.tjq{border-top:1px solid rgba(255,255,255,.07);padding:8px 2px}.tjq summary{cursor:pointer;font-weight:600}.tjq div{line-height:2;padding-top:6px}
 </style>
 </head>
 <body>
@@ -202,7 +203,8 @@ label.f{display:block;font-size:13px;color:var(--mute);margin-top:6px}
   </section>
 
   <section class="view" id="v-quran">
-    <div class="seg"><button class="on" data-qmode="listen">🎧 استماع وتفسير</button><button data-qmode="hifz">🧠 الحفظ</button><button data-qmode="mutash">🔁 المتشابهات</button></div>
+    <div class="seg"><button class="on" data-qmode="listen">🎧 استماع وتفسير</button><button data-qmode="hifz">🧠 الحفظ</button><button data-qmode="mutash">🔁 المتشابهات</button><button data-qmode="tajweed">🎙 التجويد</button></div>
+    <div id="qTajweed" style="display:none"></div>
     <div id="qHifz" style="display:none"></div>
     <div id="qMutash" style="display:none"></div>
     <div id="qListen">
@@ -1296,12 +1298,58 @@ function mtDialog(key){
   mtLoad().then(d=>{if(!d)return;const [s,a]=key.split(':').map(Number);
     openDlg('<h3>🔁 متشابهات '+mtRef(s,a)+'</h3><div class="qref">'+esc(MT.text[key])+'</div>'+mtPairsHTML(key)+'<div class="prow"><button class="gold" data-close>تمام</button></div>');});
 }
+
+/* ===== التجويد ===== */
+const TJ_BASE='https://surahquran.com/Tajweed/';
+const TJ=[
+ ['مدخل إلى علم التجويد',[['Tajweed-Science','علم التجويد'],['virtue-reading-quran','فضل قراءة القرآن'],['Etiquette-reciting-Quran','آداب التلاوة'],['Istihaadah-basmalah','الاستعاذة والبسملة'],['Levels-Quran-recitation','مراتب القراءة'],['lahn-telawah','اللحن في التلاوة'],['seven-letters','الأحرف السبعة'],['alqiraat','علم القراءات'],['surahs-ayat','أقسام القرآن']]],
+ ['مخارج وصفات الحروف',[['letter-exits','مخرج الحرف'],['capital-letter-exits','المخارج الرئيسية'],['letter-exits-sifat','جدول المخارج'],['Letters-names','ألقاب الحروف'],['qualities-letters','صفات الحروف'],['adjectives-antonyms','الصفات المتضادة'],['adjectives-not-antonyms','صفات لا ضد لها'],['qalqalah','القلقلة'],['tafkheem','حروف الاستعلاء']]],
+ ['الإدغام',[['idgham','تعريف الإدغام'],['idgham-kabeer','أقسام الإدغام'],['almutamathilin','إدغام المتماثلين'],['almutajanisin','إدغام المتجانسين'],['almutaqaribin','إدغام المتقاربين']]],
+ ['النون الساكنة والتنوين',[['noon-sakenah','النون الساكنة والتنوين'],['idhar','الإظهار'],['idgaam-noon','الإدغام'],['iqlaab','الإقلاب'],['ikhfaa','الإخفاء'],['ghonnah','الغنة']]],
+ ['الميم الساكنة',[['meem-sakenah','الميم الساكنة'],['meem-ikhfaa','الإخفاء الشفوي'],['meem-idgham','الإدغام الشفوي'],['meem-idhar','الإظهار الشفوي']]],
+ ['المدود',[['almodood','أقسام المد'],['mad-asli','المد الطبيعي'],['mad-albadal','مد البدل'],['mad-mottasel','المد الواجب المتصل'],['mad-monfasel','المد الجائز المنفصل'],['mad-lazem','المد اللازم'],['mad-aredh-lilsokon','المد العارض للسكون'],['mad-selah','مد الصلة']]],
+ ['اللام والراء',[['ahkam-allam','أحكام اللام'],['ahkam-alraa','أحكام الراء'],['tafkheem-alraa','تفخيم الراء'],['tarqeeq-alraa','ترقيق الراء'],['jawaz-tafkheem-tarqeeq','جواز الوجهين']]],
+ ['الوقف والابتداء',[['alwaqf','أحكام الوقف'],['alsakt','السكت'],['waqf-kafi-tam-hasan','أنواع الوقف'],['rawam-ishmam','الروم والإشمام'],['hamzat-alwasl','همزتا القطع والوصل'],['waqf-quran','علامات الوقف']]],
+ ['متون التجويد',[['tohfat-alatfal','متن تحفة الأطفال'],['aljazariah','متن الجزرية'],['alshatibieah','متن الشاطبية']]]
+];
+const TJ_QUICK=[
+ ['النون الساكنة والتنوين','<b>إظهار</b> عند حروف الحلق (ء هـ ع ح غ خ): «مَنْ آمَنَ».<br><b>إدغام</b> في «يرملون»: بغُنّة في (ي ن م و) «مَن يَقُولُ»، وبلا غنة في (ل ر) «مِن رَّبِّهِمْ».<br><b>إقلاب</b> عند الباء، تُقلب ميمًا: «مِن بَعْدِ».<br><b>إخفاء</b> عند باقي الحروف (١٥ حرف): «مِن قَبْلِ».'],
+ ['الميم الساكنة','<b>إخفاء شفوي</b> عند الباء: «تَرْمِيهِم بِحِجَارَةٍ».<br><b>إدغام شفوي</b> عند الميم: «لَهُم مَّا».<br><b>إظهار شفوي</b> عند باقي الحروف، وأشدّه عند الواو والفاء: «أَلَمْ تَرَ».'],
+ ['الغنة والقلقلة','<b>الغنة</b> واجبة في النون والميم المشددتين بمقدار حركتين: «إِنَّ»، «ثُمَّ».<br><b>القلقلة</b> في حروف «قطب جد» إذا سكنت، وتكون أقوى عند الوقف: «أَحَدْ».'],
+ ['المدود','<b>طبيعي</b>: حركتان.<br><b>متصل واجب</b> (المد والهمز في كلمة): ٤ أو ٥ «جَاءَ».<br><b>منفصل جائز</b> (في كلمتين): ٢ أو ٤ أو ٥ «بِمَا أُنزِلَ».<br><b>عارض للسكون</b> عند الوقف: ٢ أو ٤ أو ٦ «الْعَالَمِينْ».<br><b>لازم</b>: ٦ حركات «الضَّالِّينَ».<br><b>بدل</b>: حركتان «آمَنُوا».'],
+ ['اللام والراء','<b>لام لفظ الجلالة</b> تُفخَّم بعد فتح أو ضم «قَالَ اللَّهُ»، وتُرقَّق بعد كسر «بِسْمِ اللَّهِ».<br><b>اللام القمرية</b> تظهر «الْقَمَر»، و<b>الشمسية</b> تُدغم «الشَّمْس».<br><b>الراء</b> تُفخَّم إذا فُتحت أو ضُمّت أو سكنت بعد فتح أو ضم، وتُرقَّق إذا كُسرت أو سكنت بعد كسر أصلي وليس بعدها حرف استعلاء «فِرْعَوْن».']
+];
+function tjDone(){try{return JSON.parse(localStorage.getItem('tjDone')||'{}');}catch(e){return {};}}
+function renderTajweed(){
+  const el=document.getElementById('qTajweed');if(!el)return;const dn=tjDone();
+  const all=TJ.reduce((n,g)=>n+g[1].length,0),rd=Object.keys(dn).length;
+  let h='<h2>🎙 أحكام التجويد</h2><div class="card"><b>تقدّمك</b><div class="muted">قريت '+AR(rd)+' من '+AR(all)+' درس</div><div class="bar"><i style="width:'+Math.round(rd*100/all)+'%"></i></div></div>';
+  h+='<div class="card"><b>📌 ملخص سريع</b><div class="muted">أهم الأحكام في سطور، والتفاصيل في الدروس تحت.</div>'+TJ_QUICK.map(q=>'<details class="tjq"><summary>'+q[0]+'</summary><div>'+q[1]+'</div></details>').join('')+'</div>';
+  TJ.forEach((g,gi)=>{
+    const c=g[1].filter(x=>dn[x[0]]).length;
+    h+='<div class="card"><b>'+esc(g[0])+'</b> <span class="muted">('+AR(c)+'/'+AR(g[1].length)+')</span>'+g[1].map(x=>'<div class="rst" data-tj="'+x[0]+'" data-tjn="'+esc(x[1])+'"><span>'+(dn[x[0]]?'✅':'📖')+'</span><div>'+esc(x[1])+'</div></div>').join('')+'</div>';
+  });
+  h+='<p class="muted" style="text-align:center">الدروس من موقع surahquran.com وبتفتح جوّه التطبيق. محتاج إنترنت.</p>';
+  el.innerHTML=h;
+}
+function tjOpen(slug,name){
+  let o=document.getElementById('tjView');
+  if(!o){o=document.createElement('div');o.id='tjView';document.body.appendChild(o);}
+  const url=TJ_BASE+slug+'.html',dn=tjDone();
+  o.innerHTML='<div class="tjbar"><button data-tjclose>→ رجوع</button><b>'+esc(name)+'</b><button data-tjread="'+slug+'">'+(dn[slug]?'✅ اتقرا':'✔ خلّصته')+'</button></div><div class="tjload muted">جارٍ تحميل الدرس…</div><iframe src="'+url+'" referrerpolicy="no-referrer"></iframe><div class="tjfoot"><button data-tjext="'+url+'">افتح في المتصفح</button></div>';
+  o.querySelector('iframe').onload=()=>{const l=o.querySelector('.tjload');if(l)l.remove();};
+  o.style.display='flex';
+  const d=document.getElementById('dlg');document.getElementById('dlgIn').innerHTML='';d.classList.add('tjm','on');
+  if(!window.tjObs){window.tjObs=new MutationObserver(()=>{const d=document.getElementById('dlg'),v=document.getElementById('tjView');if(d.classList.contains('tjm')&&!d.classList.contains('on')&&v&&v.style.display!=='none')tjClose();});tjObs.observe(d,{attributes:true,attributeFilter:['class']});}
+}
+function tjClose(){const dg=document.getElementById('dlg');dg.classList.remove('on','tjm');const o=document.getElementById('tjView');if(o){o.style.display='none';o.innerHTML='';}renderTajweed();}
 function setQMode(m){
   document.querySelectorAll('[data-qmode]').forEach(b=>b.classList.toggle('on',b.dataset.qmode===m));
   document.getElementById('qHifz').style.display=m==='hifz'?'':'none';
   document.getElementById('qMutash').style.display=m==='mutash'?'':'none';
+  document.getElementById('qTajweed').style.display=m==='tajweed'?'':'none';
   document.getElementById('qListen').style.display=m==='listen'?'':'none';
-  if(m==='hifz')renderHifz();else if(m==='mutash')renderMutash();else initQuran();
+  if(m==='hifz')renderHifz();else if(m==='mutash')renderMutash();else if(m==='tajweed')renderTajweed();else initQuran();
 }
 function render(){wSync();renderHijri();renderWisdom();if(document.getElementById('v-women').classList.contains('on'))renderWomen();renderToday();renderReview();renderCompass();renderEdit();if(qData&&document.getElementById('v-quran').classList.contains('on'))renderAyat();if(document.getElementById('v-adhkar').classList.contains('on'))renderAdhkar();if(document.getElementById('qHifz').style.display!=='none')renderHifz();syncNative();}
 function show(v){if(v!=='compass')qiblaOff();rdWatch(v==='radio');document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));window.scrollTo({top:0});}
@@ -1314,10 +1362,14 @@ document.addEventListener('change',e=>{
   if(e.target.id==='qSurah'||e.target.id==='qReciter'||e.target.id==='qTafsir')loadSurah(document.getElementById('qSurah').value,document.getElementById('qReciter').value,document.getElementById('qTafsir').value);
 });
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-rd],[data-rdst],[data-rdsleep],[data-ad],[data-ads],[data-adp],[data-adplay],[data-hc],[data-wis],[data-bk],[data-mt],[data-mthz],[data-wtoggle],[data-wtype],[data-wday],[data-wstart],[data-wend],[data-wdel],[data-cmode],[data-qloc],[data-qlocset],[data-dk],[data-dkev],[data-dkph],[data-speak],[data-speaktest],[data-ttsset],[data-test],[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
+  const t=e.target.closest('[data-tj],[data-tjclose],[data-tjread],[data-tjext],[data-rd],[data-rdst],[data-rdsleep],[data-ad],[data-ads],[data-adp],[data-adplay],[data-hc],[data-wis],[data-bk],[data-mt],[data-mthz],[data-wtoggle],[data-wtype],[data-wday],[data-wstart],[data-wend],[data-wdel],[data-cmode],[data-qloc],[data-qlocset],[data-dk],[data-dkev],[data-dkph],[data-speak],[data-speaktest],[data-ttsset],[data-test],[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
   if(!t){if(e.target.id==='dlg')closeDlg();return;}
   const D=t.dataset;
   if(D.rd==='toggle'){rdToggle();return;}
+  if(D.tj){tjOpen(D.tj,D.tjn);return;}
+  if(D.tjclose!==undefined){tjClose();return;}
+  if(D.tjread){const d=tjDone();if(d[D.tjread])delete d[D.tjread];else d[D.tjread]=1;localStorage.setItem('tjDone',JSON.stringify(d));t.textContent=d[D.tjread]?'✅ اتقرا':'✔ خلّصته';return;}
+  if(D.tjext){try{if(window.Android&&Android.openUrl)Android.openUrl(D.tjext);else window.open(D.tjext);}catch(e){}return;}
   if(D.rdst!==undefined){rdPick(+D.rdst);return;}
   if(D.rdsleep!==undefined){rdSel=+D.rdsleep;try{Android.radioSleep(+D.rdsleep);}catch(e){}setTimeout(renderRadio,300);return;}
   if(D.ad==='toggle'){settings.adhan=Object.assign(adhanCfg(),{on:!adhanCfg().on});mark('settings');adhanSent='';syncAdhan();renderAdhan();return;}
