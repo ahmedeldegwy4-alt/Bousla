@@ -6,11 +6,8 @@ jobs:
     steps:
       - run: |
           set +e
-          curl -sL -m 15 -A "Mozilla/5.0 (Linux; Android 14)" https://surahquran.com/mp3/Al-Ghamdi -o g.html -w 'code=%{http_code} %{url_effective}\n'
-          wc -c g.html; grep -o '<title>[^<]*' g.html
-          grep -oE '(data-src|src|href|data-url|data-file)="[^"]+\.(mp3|m3u8)[^"]*"' g.html | sort -u | head -8
-          grep -oE 'https?://[^"'"'"' ]+\.mp3' g.html | sort -u | wc -l
-          grep -oE 'https?://[^"'"'"' ]+\.mp3' g.html | sort -u | head -4
-          grep -oE 'https?://[^"'"'"' ]+\.mp3' g.html | sort -u | tail -2
-          u=$(grep -oE 'https?://[^"'"'"' ]+\.mp3' g.html | head -1); curl -sIL -m 8 "$u" | grep -iE '^HTTP|content-type|content-length|location'
-          grep -oiE 'data-[a-z]+="[^"]{0,80}' g.html | sort -u | head -20
+          curl -sL -m 15 -A "Mozilla/5.0 (Linux; Android 14)" https://surahquran.com/mp3/Al-Ghamdi -o g.html
+          grep -oiE '(mp3|audio|server|\.net|\.com)[^"<> ]{0,120}' g.html | grep -viE 'surahquran.com/(mp3/[A-Z]|[0-9]+\.html|Tajweed|Radio|css|js|img)|facebook|google|twitter|png|jpg|webp|svg|font' | sort -u | head -40
+          echo ---; grep -oE '<script[^>]*src="[^"]+"' g.html
+          echo ---; grep -oE '<a [^>]*href="[^"]+"' g.html | sed -n '40,60p'
+          echo ---; sed -n '/<audio/,/<\/audio>/p' g.html | head -5
