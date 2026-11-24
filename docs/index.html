@@ -1018,27 +1018,34 @@ const STATIONS=[
  {g:'موضوعات',n:'تفسير القرآن',d:'بث متواصل',url:'https://backup.qurango.net/radio/tafseer'},
  {g:'موضوعات',n:'تراتيل قصيرة',d:'بث متواصل',url:'https://qurango.net/radio/tarateel'}
 ];
-let rdState='stopped',rdTimer=null,rdWeb=null,rdSel=0,rdWebI=-1;
+let rdState='stopped',rdTimer=null,rdWeb=null,rdSel=0,rdWebI=-1,rdWebN='';
 function rdIdx(){let i=+(localStorage.getItem('rdSt')||0);return (i>=0&&i<STATIONS.length)?i:0;}
 function rdGet(){
   if(window.Android&&Android.radioState){try{const [st,nm,at]=Android.radioState().split('|');return {st,nm,at:+at||0};}catch(e){}}
-  if(rdWeb)return {st:rdWeb.error?'error':rdWeb.paused?'stopped':(rdWeb.readyState>=3?'playing':'buffering'),nm:(STATIONS[rdWebI]||{}).n||'',at:0};
+  if(rdWeb)return {st:rdWeb.error?'error':rdWeb.paused?'stopped':(rdWeb.readyState>=3?'playing':'buffering'),nm:rdWebN||'',at:0};
   return {st:'stopped',nm:'',at:0};
 }
 function renderRadio(){
   const el=document.getElementById('radio');if(!el)return;const r=rdGet();rdState=r.st;
   let ci=rdIdx();if(r.nm&&r.st!=='stopped'){const k=STATIONS.findIndex(x=>x.n===r.nm);if(k>=0)ci=k;}
-  const st=STATIONS[ci],on=r.st==='playing'||r.st==='buffering';
-  const label={stopped:'دوس للتشغيل',buffering:'جارٍ الاتصال بالبث…',playing:'🔴 بث مباشر الآن',error:'تعذّر الاتصال — جرّب إذاعة تانية أو اتأكد من الإنترنت'}[r.st]||'';
+  let st=STATIONS[ci];const on=r.st==='playing'||r.st==='buffering',isM=on&&r.nm&&r.nm.indexOf(MSH.n)===0;
+  if(isM)st={n:r.nm,d:'المصحف المرتل — '+(mshAuto()?'بيكمّل السورة اللي بعدها':'سورة واحدة')};
+  let label={stopped:'دوس للتشغيل',buffering:'جارٍ الاتصال بالبث…',playing:'🔴 بث مباشر الآن',error:'تعذّر الاتصال — جرّب إذاعة تانية أو اتأكد من الإنترنت'}[r.st]||'';
+  if(isM&&r.st==='playing')label='🔊 بيشتغل الآن';
   const left=r.at?Math.max(0,Math.round((r.at-Date.now())/60000)):0;
   let h='<h2>📻 الراديو</h2><div class="card" style="text-align:center"><b style="font-size:19px">'+esc(st.n)+'</b><div class="muted">'+esc(st.d)+'</div>'+
     '<div class="rbtn'+(r.st==='playing'?' on':r.st==='buffering'?' wait':'')+'" data-rd="toggle">'+(on?'⏸':'▶')+'</div>'+
     '<div class="'+(r.st==='error'?'err':'muted')+'">'+label+'</div></div>';
+  const mi=mshIdx();
+  h+='<div class="card"><b>📖 المصحف المرتل — سعد الغامدي</b><div class="muted">القرآن كامل برواية حفص عن عاصم.</div>'+
+    '<select id="mshSel">'+SURAHS.map((x,i)=>'<option value="'+(i+1)+'"'+(i+1===mi?' selected':'')+'>'+AR(i+1)+'. '+esc(x[0])+'</option>').join('')+'</select>'+
+    '<div class="prow"><button class="gold" data-msh="play">'+(isM?'⏹ إيقاف':'▶ شغّل السورة')+'</button><button data-msh="prev">→ السابقة</button><button data-msh="next">التالية ←</button></div>'+
+    '<label class="f" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="mshAuto"'+(mshAuto()?' checked':'')+'> كمّل السورة اللي بعدها لوحده</label></div>';
   let g='';
   STATIONS.forEach((x,i)=>{
     if(x.g!==g){if(g)h+='</div>';g=x.g;h+='<div class="card"><b>'+esc(g)+'</b>';}
-    const cur=i===ci&&on;
-    h+='<div class="rst'+(i===ci?' sel':'')+'" data-rdst="'+i+'"><span>'+(cur?(r.st==='playing'?'🔊':'⏳'):'▶')+'</span><div><div>'+esc(x.n)+'</div><div class="muted">'+esc(x.d)+'</div></div></div>';
+    const cur=i===ci&&on&&!isM;
+    h+='<div class="rst'+(i===ci&&!isM?' sel':'')+'" data-rdst="'+i+'"><span>'+(cur?(r.st==='playing'?'🔊':'⏳'):'▶')+'</span><div><div>'+esc(x.n)+'</div><div class="muted">'+esc(x.d)+'</div></div></div>';
   });
   h+='</div>';
   if(window.Android&&Android.radioPlay){
@@ -1048,13 +1055,32 @@ function renderRadio(){
   h+='<p class="muted" style="text-align:center">الإذاعات من دليل surahquran.com. محتاج إنترنت.</p>';
   el.innerHTML=h;
 }
+
+/* ===== المصحف المرتل (سعد الغامدي) ===== */
+const MSH={n:'سعد الغامدي',u:i=>'https://server7.mp3quran.net/s_gmd/'+String(i).padStart(3,'0')+'.mp3'};
+let mshOn=false,mshSeen=false,mshCur=mshIdx();
+function mshIdx(){const i=+(localStorage.getItem('mshS')||1);return i>=1&&i<=114?i:1;}
+function mshAuto(){return localStorage.getItem('mshAuto')!=='0';}
+function mshName(i){return MSH.n+' — سورة '+SURAHS[i-1][0];}
+function mshPlay(i){
+  i=Math.max(1,Math.min(114,i));localStorage.setItem('mshS',i);const u=MSH.u(i),n=mshName(i);
+  if(window.Android&&Android.radioPlay)Android.radioPlay(u,n);
+  else{if(rdWeb){rdWeb.pause();rdWeb.src='';}rdWebI=-1;rdWebN=n;rdWeb=new Audio(u);rdWeb.play().catch(()=>{});rdWeb.onplaying=renderRadio;rdWeb.onerror=renderRadio;rdWeb.onended=renderRadio;}
+  mshOn=true;mshSeen=false;mshCur=i;setTimeout(renderRadio,150);
+}
+setInterval(()=>{
+  if(!mshOn)return;const r=rdGet();
+  if(r.nm===mshName(mshCur)&&r.st==='playing')mshSeen=true;
+  if(r.st==='error'){mshOn=false;return;}
+  if(mshSeen&&r.st==='stopped'){mshOn=false;if(mshAuto()&&mshCur<114){mshPlay(mshCur+1);}else renderRadio();}
+},2000);
 function rdPlay(i){
-  const st=STATIONS[i];localStorage.setItem('rdSt',i);
+  mshOn=false;const st=STATIONS[i];localStorage.setItem('rdSt',i);
   if(window.Android&&Android.radioPlay){Android.radioPlay(st.url,st.n);}
-  else{if(rdWeb){rdWeb.pause();rdWeb.src='';}rdWebI=i;rdWeb=new Audio(st.url);rdWeb.play().catch(()=>{});rdWeb.onplaying=renderRadio;rdWeb.onerror=renderRadio;}
+  else{if(rdWeb){rdWeb.pause();rdWeb.src='';}rdWebI=i;rdWebN=st.n;rdWeb=new Audio(st.url);rdWeb.play().catch(()=>{});rdWeb.onplaying=renderRadio;rdWeb.onerror=renderRadio;}
   setTimeout(renderRadio,150);
 }
-function rdStop(){if(window.Android&&Android.radioStop)Android.radioStop();else if(rdWeb){rdWeb.pause();rdWeb.src='';rdWeb=null;}setTimeout(renderRadio,150);}
+function rdStop(){mshOn=false;if(window.Android&&Android.radioStop)Android.radioStop();else if(rdWeb){rdWeb.pause();rdWeb.src='';rdWeb=null;}setTimeout(renderRadio,150);}
 function rdToggle(){const r=rdGet();if(r.st==='playing'||r.st==='buffering')rdStop();else rdPlay(rdIdx());}
 function rdPick(i){const r=rdGet(),on=r.st==='playing'||r.st==='buffering';if(on&&r.nm===STATIONS[i].n)rdStop();else rdPlay(i);}
 function rdWatch(on){clearInterval(rdTimer);if(on)rdTimer=setInterval(()=>{const s=rdGet().st;if(s!==rdState||s==='buffering')renderRadio();},1000);}
@@ -1401,15 +1427,19 @@ function show(v){if(v!=='compass')qiblaOff();rdWatch(v==='radio');curV=v;documen
 document.addEventListener('change',e=>{
   if(e.target.id==='wisH'){settings.wis=Object.assign(wisCfg(),{h:+e.target.value,m:0});mark('settings');syncNative();return;}
   if(e.target.id==='mtS'){mtSurah=+e.target.value;renderMutash();window.scrollTo({top:0});return;}
+  if(e.target.id==='mshAuto'){localStorage.setItem('mshAuto',e.target.checked?'1':'0');return;}
+  if(e.target.id==='mshSel'){localStorage.setItem('mshS',e.target.value);return;}
   if(e.target.id==='ptMethod'||e.target.id==='ptAsr'){settings.pt={method:document.getElementById('ptMethod').value,asr:+document.getElementById('ptAsr').value};mark('settings');renderPrayerTimes();adhanSent='';syncAdhan();return;}
   if(e.target.id==='dkFrom'||e.target.id==='dkTo'){let f=+document.getElementById('dkFrom').value,t=+document.getElementById('dkTo').value;if(t<=f)t=Math.min(23,f+1);setDhikr({from:f,to:t});return;}
   if(e.target.id==='qSurah'||e.target.id==='qReciter'||e.target.id==='qTafsir')loadSurah(document.getElementById('qSurah').value,document.getElementById('qReciter').value,document.getElementById('qTafsir').value);
 });
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-sub],[data-tj],[data-tjclose],[data-tjread],[data-tjext],[data-rd],[data-rdst],[data-rdsleep],[data-ad],[data-ads],[data-adp],[data-adplay],[data-hc],[data-wis],[data-bk],[data-mt],[data-mthz],[data-wtoggle],[data-wtype],[data-wday],[data-wstart],[data-wend],[data-wdel],[data-cmode],[data-qloc],[data-qlocset],[data-dk],[data-dkev],[data-dkph],[data-speak],[data-speaktest],[data-ttsset],[data-test],[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
+  const t=e.target.closest('[data-msh],[data-sub],[data-tj],[data-tjclose],[data-tjread],[data-tjext],[data-rd],[data-rdst],[data-rdsleep],[data-ad],[data-ads],[data-adp],[data-adplay],[data-hc],[data-wis],[data-bk],[data-mt],[data-mthz],[data-wtoggle],[data-wtype],[data-wday],[data-wstart],[data-wend],[data-wdel],[data-cmode],[data-qloc],[data-qlocset],[data-dk],[data-dkev],[data-dkph],[data-speak],[data-speaktest],[data-ttsset],[data-test],[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
   if(!t){if(e.target.id==='dlg')closeDlg();return;}
   const D=t.dataset;
   if(D.rd==='toggle'){rdToggle();return;}
+  if(D.msh){const r=rdGet(),on=(r.st==='playing'||r.st==='buffering')&&r.nm&&r.nm.indexOf(MSH.n)===0,sel=+(document.getElementById('mshSel')||{value:mshIdx()}).value;
+    if(D.msh==='play'){if(on)rdStop();else mshPlay(sel);}else mshPlay(D.msh==='next'?Math.min(114,(on?mshCur:sel)+1):Math.max(1,(on?mshCur:sel)-1));return;}
   if(D.tj){tjOpen(D.tj,D.tjn);return;}
   if(D.tjclose!==undefined){tjClose();return;}
   if(D.tjread){const d=tjDone();if(d[D.tjread])delete d[D.tjread];else d[D.tjread]=1;localStorage.setItem('tjDone',JSON.stringify(d));t.textContent=d[D.tjread]?'✅ اتقرا':'✔ خلّصته';return;}
