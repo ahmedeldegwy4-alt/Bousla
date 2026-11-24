@@ -1,0 +1,16 @@
+name: Diag stream
+on: workflow_dispatch
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          set +e
+          curl -sL -m 15 -A "Mozilla/5.0 (Linux; Android 14)" https://surahquran.com/mp3/Al-Ghamdi -o g.html -w 'code=%{http_code} %{url_effective}\n'
+          wc -c g.html; grep -o '<title>[^<]*' g.html
+          grep -oE '(data-src|src|href|data-url|data-file)="[^"]+\.(mp3|m3u8)[^"]*"' g.html | sort -u | head -8
+          grep -oE 'https?://[^"'"'"' ]+\.mp3' g.html | sort -u | wc -l
+          grep -oE 'https?://[^"'"'"' ]+\.mp3' g.html | sort -u | head -4
+          grep -oE 'https?://[^"'"'"' ]+\.mp3' g.html | sort -u | tail -2
+          u=$(grep -oE 'https?://[^"'"'"' ]+\.mp3' g.html | head -1); curl -sIL -m 8 "$u" | grep -iE '^HTTP|content-type|content-length|location'
+          grep -oiE 'data-[a-z]+="[^"]{0,80}' g.html | sort -u | head -20
