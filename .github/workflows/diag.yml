@@ -5,11 +5,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          for p in Cairo Saudi Algeria Morocco UAE USA noor Khashia Mix Sudais Dosari Afasi Abdulbasit Baqarah Tafseer Qatar Qatar106 Bahrain Jordan Kuwait Oman Pakistan Palestine Sharjah; do
-            h=$(curl -sL -m 15 -A "Mozilla/5.0" "https://surahquran.com/Radio-Quran-$p.html")
-            t=$(echo "$h" | grep -o '<title>[^<]*' | head -1 | sed 's/<title>//')
-            for u in $(echo "$h" | grep -oE 'https?://[^"'"'"' <>]+' | grep -iE 'stream|radio|\.mp3|m3u8|:[0-9]{4}|live|icecast|zeno|listen' | grep -viE 'surahquran\.com|\.(png|jpg|css|js|html)|facebook|twitter|google' | sort -u); do
-              r=$(curl -sL -m 6 -r 0-2000 -o /dev/null -w '%{http_code} %{content_type} %{url_effective}' "$u" 2>/dev/null)
-              echo "ST|$p|$t|$u|$r"
-            done
-          done
+          curl -sL -m 15 -A "Mozilla/5.0 (Linux; Android 14)" "https://surahquran.com/Radio-Quran-Saudi.html" -o s.html -w 'code=%{http_code}\n'; wc -c s.html
+          grep -oiE '(src|href|file|url|data-[a-z]+)\s*[=:]\s*["'"'"'][^"'"'"']+' s.html | grep -viE '\.(png|jpg|svg|css|webp|ico)|Radio-Quran-|facebook|twitter' | sort -u | head -60
