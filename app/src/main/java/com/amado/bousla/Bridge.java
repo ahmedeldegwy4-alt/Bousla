@@ -109,6 +109,15 @@ public class Bridge {
     }
 
     @JavascriptInterface
+    public void updateApk() {
+        MainActivity a = MainActivity.current;
+        if (a != null) a.runOnUiThread(() -> Installer.start(a));
+    }
+
+    @JavascriptInterface
+    public String updateState() { return Installer.state + "|" + Installer.progress; }
+
+    @JavascriptInterface
     public void radioPlay(String url, String name) {
         if (url == null || !url.startsWith("https://")) return;
         Intent s = new Intent(c, RadioService.class).putExtra("url", url).putExtra("name", name);

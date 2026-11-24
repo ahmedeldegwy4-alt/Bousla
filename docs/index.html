@@ -493,7 +493,7 @@ function dueNow(){
 }
 function apkBanner(){
   try{if(window.Android&&Android.getApkUpdate&&Android.getApkUpdate()>Android.getAppVersion())
-    return '<div class="card due"><h3>⬆ فيه نسخة جديدة من التطبيق</h3><div>نزّلها وثبّتها فوق القديمة — بياناتك مش هتتمسح.</div><div class="prow"><button class="gold" data-apk>تنزيل التحديث</button></div></div>';}catch(e){}
+    return '<div class="card due"><h3>⬆ فيه نسخة جديدة من التطبيق</h3><div>دوس «حدّث الآن» وبعدها «تحديث» — بياناتك مش هتتمسح.</div><div class="prow"><button class="gold" data-apk>حدّث الآن</button></div></div>';}catch(e){}
   return '';
 }
 function renderForce(){
@@ -632,8 +632,10 @@ function speakTest(){
 }
 function womenCard(){const on=!!(settings.women&&settings.women.on);return '<div class="card"><div class="hs"><b>🌸 قسم النساء (فترة العذر الشرعي)</b><span class="chip'+(on?' on':'')+'" data-wtoggle>'+(on?'✓ ظاهر':'مخفي')+'</span></div><div class="muted">لو مستخدمة التطبيق ستّ، فعّلي القسم ده عشان تسجّلي فترة العذر والتطبيق يراعيها.</div></div>';}
 function backupCard(){return '<div class="card"><b>💾 نسخة احتياطية</b><div class="muted">انسخ بياناتك واحفظها عندك (مثلاً ابعتها لنفسك على واتساب)، وترجّعها في أي وقت.</div><div class="prow"><button class="gold" data-bk="export">انسخ نسخة احتياطية</button><button data-bk="import">استرجاع نسخة</button></div><div id="bkBox"></div></div>';}
+function versionCard(){if(!window.Android)return '';let v=0,r=0;try{v=Android.getAppVersion();r=Android.getApkUpdate();}catch(e){}
+  return '<div class="card"><div class="hs"><span>📱 نسخة التطبيق: '+AR(v)+'</span>'+(r>v?'<button class="gold" data-apk>⬆ تحديث لنسخة '+AR(r)+'</button>':'<span class="muted">✓ أحدث نسخة</span>')+'</div></div>';}
 function renderEdit(){
-  document.getElementById('edit').innerHTML=wisCard()+backupCard()+womenCard()+speakCard()+testCard()+PILLARS.map((p,i)=>'<div class="pillar'+(openPillar==='e'+p.id?' open':'')+'"><div class="ph" data-etoggle="'+p.id+'"><div class="badge">'+AR(i+1)+'</div><div class="pt">'+esc(p.t)+'<div class="pmeta">'+AR(acts(p.id).length)+' أعمال</div></div><div class="chev">‹</div></div><div class="pb">'+
+  document.getElementById('edit').innerHTML=versionCard()+wisCard()+backupCard()+womenCard()+speakCard()+testCard()+PILLARS.map((p,i)=>'<div class="pillar'+(openPillar==='e'+p.id?' open':'')+'"><div class="ph" data-etoggle="'+p.id+'"><div class="badge">'+AR(i+1)+'</div><div class="pt">'+esc(p.t)+'<div class="pmeta">'+AR(acts(p.id).length)+' أعمال</div></div><div class="chev">‹</div></div><div class="pb">'+
     acts(p.id).map(a=>'<div class="erow"><span>'+esc(a.t)+'<small>'+esc(a.q)+(a.w?' · '+winTxt(a.w):'')+'</small></span><button class="ghost" data-del="'+p.id+'|'+a.id+'">حذف</button></div>').join('')+
     '<div class="card" style="margin-top:8px"><b>عمل جديد</b><label class="f">اسم العمل</label><input type="text" id="n-'+p.id+'"><label class="f">سؤال الإثبات</label><input type="text" id="q-'+p.id+'" placeholder="مثلاً: عملت إيه بالظبط؟">'+
     '<div class="grid2"><div><label class="f">نوع الإثبات</label><select id="k-'+p.id+'">'+Object.entries(KINDS).map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join('')+'</select></div><div><label class="f">أقل رقم (للنوع رقم)</label><input type="number" id="m-'+p.id+'" value="1"></div>'+
@@ -961,6 +963,24 @@ function renderPrayerTimes(){
 }
 
 
+
+
+/* ---------- تحديث بلمسة واحدة ---------- */
+let upTimer=null;
+function upStart(){
+  try{Android.updateApk();}catch(e){return;}
+  openDlg('<h3>⬆ تحديث التطبيق</h3><div id="upMsg">جارٍ التجهيز…</div><div class="bar"><i id="upBar" style="width:0%"></i></div><div class="prow"><button class="ghost" data-close>إخفاء</button></div>');
+  clearInterval(upTimer);
+  upTimer=setInterval(()=>{let st='',pr=0;try{[st,pr]=Android.updateState().split('|');pr=+pr;}catch(e){}
+    const m=document.getElementById('upMsg'),b=document.getElementById('upBar');if(b)b.style.width=(st==='downloading'?pr:st==='installing'?100:0)+'%';
+    if(!m)return;
+    if(st==='need_perm'){m.innerHTML='أول مرة بس: فعّل «السماح من هذا المصدر» للتطبيق، وارجع دوس «حدّث» تاني.<div class="prow"><button class="gold" data-apk>حدّث</button></div>';clearInterval(upTimer);}
+    else if(st==='downloading')m.textContent='جارٍ تحميل النسخة الجديدة… '+AR(pr)+'٪';
+    else if(st==='installing')m.textContent='جارٍ التثبيت — دوس «تحديث» في الرسالة اللي هتظهر.';
+    else if(st==='error'){m.innerHTML='حصلت مشكلة في التحميل. اتأكد من النت وجرّب تاني.<div class="prow"><button class="gold" data-apk>جرّب تاني</button></div>';clearInterval(upTimer);}
+    else if(st==='idle'){m.textContent='اتلغى التثبيت.';clearInterval(upTimer);}
+  },500);
+}
 
 /* ---------- الراديو ---------- */
 const STATIONS=[{id:'cairo',n:'إذاعة القرآن الكريم من القاهرة',d:'٩٨.٢ FM — بث مباشر',url:'https://stream.radiojar.com/8s5u5tpdtwzuv'}];
@@ -1318,7 +1338,9 @@ document.addEventListener('click',e=>{
   if(t.id==='qPlayAll'){qPlay(qPlaying&&qCur>=0?qCur:0,true);return;}
   if(t.id==='qPause'){qStop();return;}
   if(t.id==='qTafAll'){const on=t.dataset.on!=='1';t.dataset.on=on?'1':'0';t.textContent=on?'📖 إخفاء التفسير':'📖 إظهار التفسير للكل';document.querySelectorAll('.ayah').forEach(x=>x.classList.toggle('showtf',on));return;}
-  if(D.apk!==undefined){try{Android.openUrl('https://github.com/ahmedeldegwy4-alt/Bousla/releases/download/latest/Bousla.apk');}catch(e){}return;}
+  if(D.apk!==undefined){
+    if(window.Android&&Android.updateApk){upStart();return;}
+    try{Android.openUrl('https://github.com/ahmedeldegwy4-alt/Bousla/releases/download/latest/Bousla.apk');}catch(e){}return;}
   if(t.matches('nav button')&&t.dataset.v==='quran'){show('quran');const cm=(document.querySelector('[data-qmode].on')||{}).dataset;setQMode(cm?cm.qmode:'listen');return;}
   if(t.matches('nav button')&&t.dataset.v==='radio'){show('radio');renderRadio();return;}
   if(t.matches('nav button')&&t.dataset.v==='prayer'){show('prayer');renderPrayerTab();return;}
