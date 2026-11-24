@@ -109,6 +109,23 @@ public class Bridge {
     }
 
     @JavascriptInterface
+    public void radioPlay(String url, String name) {
+        if (url == null || !url.startsWith("https://")) return;
+        Intent s = new Intent(c, RadioService.class).putExtra("url", url).putExtra("name", name);
+        RadioService.state = "buffering";
+        try { if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(s); else c.startService(s); } catch (Exception e) { RadioService.state = "error"; }
+    }
+
+    @JavascriptInterface
+    public void radioStop() { if (!"stopped".equals(RadioService.state)) c.startService(new Intent(c, RadioService.class).setAction("stop")); RadioService.state = "stopped"; }
+
+    @JavascriptInterface
+    public String radioState() { return RadioService.state + "|" + RadioService.station + "|" + RadioService.stopAt; }
+
+    @JavascriptInterface
+    public void radioSleep(int min) { if (!"stopped".equals(RadioService.state)) c.startService(new Intent(c, RadioService.class).setAction("sleep").putExtra("min", min)); }
+
+    @JavascriptInterface
     public void setAdhan(String json) {
         SharedPreferences p = Store.p(c);
         if (json == null || json.equals(p.getString("adhan", ""))) return;

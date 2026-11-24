@@ -47,6 +47,7 @@ public class AdhanService extends Service {
                 .addAction(new Notification.Action.Builder(null, "⏹ إيقاف الأذان", piStop).build());
         if (Build.VERSION.SDK_INT >= 29) startForeground(NOTIF, b.build(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
         else startForeground(NOTIF, b.build());
+        if (!"stopped".equals(RadioService.state)) { try { stopService(new Intent(this, RadioService.class)); } catch (Exception ignored) {} }
         play(sheikh);
         return START_NOT_STICKY;
     }

@@ -126,6 +126,10 @@ textarea{min-height:80px;resize:vertical}
 .hc .c.big{background:#3a3a1e}
 .hc .c i{position:absolute;top:1px;left:0;right:0;font-size:8px;font-style:normal;color:var(--gold);line-height:1}
 .hc .c{padding-top:9px!important}
+.rbtn{width:132px;height:132px;border-radius:50%;border:3px solid var(--gold);background:radial-gradient(circle,#2c4a2f,#16302b);color:var(--gold2);font-size:52px;display:grid;place-items:center;margin:18px auto 8px;cursor:pointer}
+.rbtn.on{border-color:var(--ok);color:var(--ok);box-shadow:0 0 0 6px rgba(95,197,154,.15)}
+.rbtn.wait{animation:rpulse 1.2s infinite}
+@keyframes rpulse{50%{box-shadow:0 0 0 10px rgba(217,180,90,.18)}}
 .credit{text-align:center;margin:26px 0 10px;padding:14px 10px;border-top:1px solid var(--line);color:var(--mute);font-size:13.5px;line-height:1.9}
 .credit b{color:var(--gold2);font-family:'Amiri',serif;font-size:17px}
 .dlg .in{background:var(--card);border:1px solid var(--line);border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));max-width:640px;width:100%;max-height:88vh;overflow:auto}
@@ -242,6 +246,10 @@ label.f{display:block;font-size:13px;color:var(--mute);margin-top:6px}
     <p class="muted" style="text-align:center;margin-top:14px">النصوص من «حصن المسلم» — سعيد بن علي بن وهف القحطاني<br>بيانات: hisnul-muslim-data (CC BY 4.0)</p>
   </section>
 
+  <section class="view" id="v-radio">
+    <div id="radio"></div>
+  </section>
+
   <section class="view" id="v-prayer">
     <div id="ptBox"></div>
     <div id="adhanBox"></div>
@@ -285,6 +293,7 @@ label.f{display:block;font-size:13px;color:var(--mute);margin-top:6px}
   <button data-v="quran"><span class="ic">📖</span>القرآن</button>
   <button data-v="adhkar"><span class="ic">📿</span>الأذكار</button>
   <button data-v="prayer"><span class="ic">🕌</span>الصلاة</button>
+  <button data-v="radio"><span class="ic">📻</span>الراديو</button>
   <button data-v="compass"><span class="ic">🧭</span>البوصلة</button>
   <button data-v="women" id="navWomen" style="display:none"><span class="ic">🌸</span>العذر</button>
   <button data-v="edit"><span class="ic">✎</span>الأعمال</button>
@@ -655,6 +664,7 @@ function syncNative(){
   }catch(e){}
 }
 window.openFromNotif=function(kind,id){
+  if(kind==='radio'){show('radio');renderRadio();return;}
   if(kind==='prayer'){show('prayer');renderPrayerTab();return;}
   if(kind==='today'){show('today');window.scrollTo({top:0});return;}
   if(kind==='wisdom'){show('today');window.scrollTo({top:0});return;}
@@ -951,6 +961,41 @@ function renderPrayerTimes(){
 }
 
 
+
+/* ---------- الراديو ---------- */
+const STATIONS=[{id:'cairo',n:'إذاعة القرآن الكريم من القاهرة',d:'٩٨.٢ FM — بث مباشر',url:'https://stream.radiojar.com/8s5u5tpdtwzuv'}];
+let rdState='stopped',rdTimer=null,rdWeb=null,rdSel=0;
+function rdGet(){
+  if(window.Android&&Android.radioState){try{const [st,nm,at]=Android.radioState().split('|');return {st,nm,at:+at||0};}catch(e){}}
+  if(rdWeb)return {st:rdWeb.paused?'stopped':(rdWeb.readyState>=3?'playing':'buffering'),nm:STATIONS[0].n,at:0};
+  return {st:'stopped',nm:'',at:0};
+}
+function renderRadio(){
+  const el=document.getElementById('radio');if(!el)return;const r=rdGet(),st=STATIONS[0];rdState=r.st;
+  const label={stopped:'دوس للتشغيل',buffering:'جارٍ الاتصال بالبث…',playing:'🔴 بث مباشر الآن',error:'تعذّر الاتصال — اتأكد من الإنترنت وجرّب تاني'}[r.st]||'';
+  const left=r.at?Math.max(0,Math.round((r.at-Date.now())/60000)):0;
+  let h='<h2>📻 الراديو</h2><div class="card" style="text-align:center"><b style="font-size:19px">'+esc(st.n)+'</b><div class="muted">'+st.d+'</div>'+
+    '<div class="rbtn'+(r.st==='playing'?' on':r.st==='buffering'?' wait':'')+'" data-rd="toggle">'+(r.st==='playing'||r.st==='buffering'?'⏸':'▶')+'</div>'+
+    '<div class="'+(r.st==='error'?'err':'muted')+'">'+label+'</div></div>';
+  if(window.Android&&Android.radioPlay){
+    h+='<div class="card"><b>⏲ إيقاف تلقائي</b>'+(left?'<span class="muted"> — هيقف بعد '+AR(left)+' دقيقة</span>':'')+'<div class="chips">'+[[0,'من غير'],[15,'١٥ د'],[30,'٣٠ د'],[60,'ساعة'],[90,'ساعة ونص']].map(x=>'<span class="chip'+((x[0]===0&&!left)||(left&&x[0]===rdSel)?' on':'')+'" data-rdsleep="'+x[0]+'">'+x[1]+'</span>').join('')+'</div>'+
+      '<div class="muted">الراديو بيكمّل والشاشة مقفولة، وتقدر توقفه من الإشعار. ولو جه وقت الأذان، الراديو بيقف لوحده.</div></div>';
+  } else if(window.Android) h+='<div class="card due">نزّل آخر نسخة من التطبيق عشان الراديو يشتغل في الخلفية.<div class="prow"><button class="gold" data-apk>تنزيل التحديث</button></div></div>';
+  h+='<p class="muted" style="text-align:center">البث من راديو القرآن الكريم (عبر radiojar). محتاج إنترنت.</p>';
+  el.innerHTML=h;
+}
+function rdToggle(){
+  const r=rdGet(),st=STATIONS[0];
+  if(window.Android&&Android.radioPlay){
+    if(r.st==='playing'||r.st==='buffering')Android.radioStop();else Android.radioPlay(st.url,st.n);
+  } else {
+    if(rdWeb&&!rdWeb.paused){rdWeb.pause();rdWeb.src='';rdWeb=null;}
+    else{rdWeb=new Audio(st.url);rdWeb.play().catch(()=>{});rdWeb.onplaying=renderRadio;rdWeb.onerror=renderRadio;}
+  }
+  renderRadio();
+}
+function rdWatch(on){clearInterval(rdTimer);if(on)rdTimer=setInterval(()=>{const s=rdGet().st;if(s!==rdState||s==='buffering')renderRadio();},1000);}
+
 /* ---------- تبويب الصلاة: الأذان والتقويم الهجري ---------- */
 const SHEIKHS=[['refaat','الشيخ محمد رفعت'],['abdulbasit','الشيخ عبد الباسط عبد الصمد'],['minshawi','الشيخ محمد صديق المنشاوي']];
 const ADHAN_PR=[['fajr','الفجر'],['dhuhr','الظهر'],['asr','العصر'],['maghrib','المغرب'],['isha','العشاء']];
@@ -1207,7 +1252,7 @@ function setQMode(m){
   if(m==='hifz')renderHifz();else if(m==='mutash')renderMutash();else initQuran();
 }
 function render(){wSync();renderHijri();renderWisdom();if(document.getElementById('v-women').classList.contains('on'))renderWomen();renderToday();renderReview();renderCompass();renderEdit();if(qData&&document.getElementById('v-quran').classList.contains('on'))renderAyat();if(document.getElementById('v-adhkar').classList.contains('on'))renderAdhkar();if(document.getElementById('qHifz').style.display!=='none')renderHifz();syncNative();}
-function show(v){if(v!=='compass')qiblaOff();document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));window.scrollTo({top:0});}
+function show(v){if(v!=='compass')qiblaOff();rdWatch(v==='radio');document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));window.scrollTo({top:0});}
 
 document.addEventListener('change',e=>{
   if(e.target.id==='wisH'){settings.wis=Object.assign(wisCfg(),{h:+e.target.value,m:0});mark('settings');syncNative();return;}
@@ -1217,9 +1262,11 @@ document.addEventListener('change',e=>{
   if(e.target.id==='qSurah'||e.target.id==='qReciter'||e.target.id==='qTafsir')loadSurah(document.getElementById('qSurah').value,document.getElementById('qReciter').value,document.getElementById('qTafsir').value);
 });
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-ad],[data-ads],[data-adp],[data-adplay],[data-hc],[data-wis],[data-bk],[data-mt],[data-mthz],[data-wtoggle],[data-wtype],[data-wday],[data-wstart],[data-wend],[data-wdel],[data-cmode],[data-qloc],[data-qlocset],[data-dk],[data-dkev],[data-dkph],[data-speak],[data-speaktest],[data-ttsset],[data-test],[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
+  const t=e.target.closest('[data-rd],[data-rdsleep],[data-ad],[data-ads],[data-adp],[data-adplay],[data-hc],[data-wis],[data-bk],[data-mt],[data-mthz],[data-wtoggle],[data-wtype],[data-wday],[data-wstart],[data-wend],[data-wdel],[data-cmode],[data-qloc],[data-qlocset],[data-dk],[data-dkev],[data-dkph],[data-speak],[data-speaktest],[data-ttsset],[data-test],[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
   if(!t){if(e.target.id==='dlg')closeDlg();return;}
   const D=t.dataset;
+  if(D.rd==='toggle'){rdToggle();return;}
+  if(D.rdsleep!==undefined){rdSel=+D.rdsleep;try{Android.radioSleep(+D.rdsleep);}catch(e){}setTimeout(renderRadio,300);return;}
   if(D.ad==='toggle'){settings.adhan=Object.assign(adhanCfg(),{on:!adhanCfg().on});mark('settings');adhanSent='';syncAdhan();renderAdhan();return;}
   if(D.ad==='stop'){try{Android.stopAdhan();}catch(e){}try{adPreview&&adPreview.pause();}catch(e){}return;}
   if(D.ads){settings.adhan=Object.assign(adhanCfg(),{sheikh:D.ads});mark('settings');adhanSent='';syncAdhan();renderAdhan();return;}
@@ -1273,6 +1320,7 @@ document.addEventListener('click',e=>{
   if(t.id==='qTafAll'){const on=t.dataset.on!=='1';t.dataset.on=on?'1':'0';t.textContent=on?'📖 إخفاء التفسير':'📖 إظهار التفسير للكل';document.querySelectorAll('.ayah').forEach(x=>x.classList.toggle('showtf',on));return;}
   if(D.apk!==undefined){try{Android.openUrl('https://github.com/ahmedeldegwy4-alt/Bousla/releases/download/latest/Bousla.apk');}catch(e){}return;}
   if(t.matches('nav button')&&t.dataset.v==='quran'){show('quran');const cm=(document.querySelector('[data-qmode].on')||{}).dataset;setQMode(cm?cm.qmode:'listen');return;}
+  if(t.matches('nav button')&&t.dataset.v==='radio'){show('radio');renderRadio();return;}
   if(t.matches('nav button')&&t.dataset.v==='prayer'){show('prayer');renderPrayerTab();return;}
   if(t.matches('nav button')&&t.dataset.v==='women'){show('women');renderWomen();return;}
   if(t.matches('nav button')&&t.dataset.v==='compass'){show('compass');setCMode(qbMode);return;}
