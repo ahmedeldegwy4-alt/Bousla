@@ -1037,10 +1037,6 @@ function renderRadio(){
     '<div class="rbtn'+(r.st==='playing'?' on':r.st==='buffering'?' wait':'')+'" data-rd="toggle">'+(on?'⏸':'▶')+'</div>'+
     '<div class="'+(r.st==='error'?'err':'muted')+'">'+label+'</div></div>';
   const mi=(isM&&mshFromName(r.nm))||mshIdx();
-  h+='<div class="card"><b>📖 المصحف المرتل — سعد الغامدي</b><div class="muted">القرآن كامل برواية حفص عن عاصم.</div>'+
-    '<select id="mshSel">'+SURAHS.map((x,i)=>'<option value="'+(i+1)+'"'+(i+1===mi?' selected':'')+'>'+AR(i+1)+'. '+esc(x[0])+'</option>').join('')+'</select>'+
-    '<div class="prow"><button class="gold" data-msh="play">'+(isM?'⏹ إيقاف':'▶ شغّل السورة')+'</button><button data-msh="prev">→ السابقة</button><button data-msh="next">التالية ←</button></div>'+
-    '<label class="f" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="mshAuto"'+(mshAuto()?' checked':'')+'> كمّل السورة اللي بعدها لوحده</label></div>';
   let g='';
   STATIONS.forEach((x,i)=>{
     if(x.g!==g){if(g)h+='</div>';g=x.g;h+='<div class="card"><b>'+esc(g)+'</b>';}
@@ -1052,6 +1048,10 @@ function renderRadio(){
     h+='<div class="card"><b>⏲ إيقاف تلقائي</b>'+(left?'<span class="muted"> — هيقف بعد '+AR(left)+' دقيقة</span>':'')+'<div class="chips">'+[[0,'من غير'],[15,'١٥ د'],[30,'٣٠ د'],[60,'ساعة'],[90,'ساعة ونص']].map(x=>'<span class="chip'+((x[0]===0&&!left)||(left&&x[0]===rdSel)?' on':'')+'" data-rdsleep="'+x[0]+'">'+x[1]+'</span>').join('')+'</div>'+
       '<div class="muted">الراديو بيكمّل والشاشة مقفولة، وتقدر توقفه من الإشعار. ولو جه وقت الأذان، الراديو بيقف لوحده.</div></div>';
   } else if(window.Android) h+='<div class="card due">نزّل آخر نسخة من التطبيق عشان الراديو يشتغل في الخلفية.<div class="prow"><button class="gold" data-apk>تنزيل التحديث</button></div></div>';
+  h+='<div class="card"><b>📖 المصحف المرتل — سعد الغامدي</b><div class="muted">القرآن كامل برواية حفص عن عاصم.</div>'+
+    '<select id="mshSel">'+SURAHS.map((x,i)=>'<option value="'+(i+1)+'"'+(i+1===mi?' selected':'')+'>'+AR(i+1)+'. '+esc(x[0])+'</option>').join('')+'</select>'+
+    '<div class="prow"><button class="gold" data-msh="play">'+(isM?'⏹ إيقاف':'▶ شغّل السورة')+'</button><button data-msh="prev">→ السابقة</button><button data-msh="next">التالية ←</button></div>'+
+    '<label class="f" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="mshAuto"'+(mshAuto()?' checked':'')+'> كمّل السورة اللي بعدها لوحده</label></div>';
   h+='<p class="muted" style="text-align:center">الإذاعات من دليل surahquran.com. محتاج إنترنت.</p>';
   el.innerHTML=h;
 }
