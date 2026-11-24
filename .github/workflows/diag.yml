@@ -1,0 +1,12 @@
+name: Diag stream
+on: workflow_dispatch
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for u in https://stream.radiojar.com/8s5u5tpdtwzuv; do
+            echo "== $u"; curl -s -o /dev/null -D - -m 8 "$u" | head -20 || true
+            curl -sL -m 6 "$u" -o s.bin -w 'final=%{http_code} %{url_effective} %{content_type}\n' || true
+            ls -la s.bin; xxd s.bin | head -3
+          done
