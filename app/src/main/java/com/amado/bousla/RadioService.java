@@ -24,6 +24,8 @@ public class RadioService extends Service {
     static volatile String state = "stopped";   // stopped | buffering | playing | error
     static volatile String station = "";
     static volatile long stopAt = 0;
+    private String[] qU, qN;
+    private int qi = 0;
     private MediaPlayer mp;
     private PowerManager.WakeLock wake;
     private WifiManager.WifiLock wifi;
@@ -48,6 +50,12 @@ public class RadioService extends Service {
         }
         String url = in != null ? in.getStringExtra("url") : null;
         station = in != null && in.getStringExtra("name") != null ? in.getStringExtra("name") : "إذاعة القرآن الكريم";
+        String qu = in != null ? in.getStringExtra("qUrls") : null, qn = in != null ? in.getStringExtra("qNames") : null;
+        if (qu != null && qn != null) {
+            qU = qu.split("\n"); qN = qn.split("\n"); qi = 0;
+            if (qU.length == 0 || qN.length != qU.length) { qU = null; qN = null; }
+            else { url = qU[0]; station = qN[0]; }
+        } else { qU = null; qN = null; }
         if (url == null || !url.startsWith("https://")) { stopSelf(); return START_NOT_STICKY; }
         startForegroundNow();
         play(url);
@@ -88,7 +96,11 @@ public class RadioService extends Service {
             mp.setDataSource(url);
             mp.setOnPreparedListener(m -> { h.removeCallbacks(timeout); m.start(); state = "playing"; });
             mp.setOnErrorListener((m, w, e) -> { state = "error"; h.postDelayed(this::stopSelf, 500); return true; });
-            mp.setOnCompletionListener(m -> { state = "stopped"; stopSelf(); });
+            mp.setOnCompletionListener(m -> {
+                if (qU != null && qi + 1 < qU.length && qU[qi + 1].startsWith("https://")) {
+                    qi++; station = qN[qi]; startForegroundNow(); play(qU[qi]);
+                } else { state = "stopped"; stopSelf(); }
+            });
             mp.prepareAsync();
             h.removeCallbacks(timeout); h.postDelayed(timeout, 20000);
             WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);

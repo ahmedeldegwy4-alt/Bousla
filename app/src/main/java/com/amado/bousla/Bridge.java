@@ -118,6 +118,14 @@ public class Bridge {
     public String updateState() { return Installer.state + "|" + Installer.progress; }
 
     @JavascriptInterface
+    public void radioQueue(String urls, String names) {
+        if (urls == null || names == null || !urls.startsWith("https://")) return;
+        Intent s = new Intent(c, RadioService.class).putExtra("qUrls", urls).putExtra("qNames", names);
+        RadioService.state = "buffering";
+        try { if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(s); else c.startService(s); } catch (Exception e) { RadioService.state = "error"; }
+    }
+
+    @JavascriptInterface
     public void radioPlay(String url, String name) {
         if (url == null || !url.startsWith("https://")) return;
         Intent s = new Intent(c, RadioService.class).putExtra("url", url).putExtra("name", name);

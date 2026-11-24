@@ -1036,7 +1036,7 @@ function renderRadio(){
   let h='<h2>📻 الراديو</h2><div class="card" style="text-align:center"><b style="font-size:19px">'+esc(st.n)+'</b><div class="muted">'+esc(st.d)+'</div>'+
     '<div class="rbtn'+(r.st==='playing'?' on':r.st==='buffering'?' wait':'')+'" data-rd="toggle">'+(on?'⏸':'▶')+'</div>'+
     '<div class="'+(r.st==='error'?'err':'muted')+'">'+label+'</div></div>';
-  const mi=mshIdx();
+  const mi=(isM&&mshFromName(r.nm))||mshIdx();
   h+='<div class="card"><b>📖 المصحف المرتل — سعد الغامدي</b><div class="muted">القرآن كامل برواية حفص عن عاصم.</div>'+
     '<select id="mshSel">'+SURAHS.map((x,i)=>'<option value="'+(i+1)+'"'+(i+1===mi?' selected':'')+'>'+AR(i+1)+'. '+esc(x[0])+'</option>').join('')+'</select>'+
     '<div class="prow"><button class="gold" data-msh="play">'+(isM?'⏹ إيقاف':'▶ شغّل السورة')+'</button><button data-msh="prev">→ السابقة</button><button data-msh="next">التالية ←</button></div>'+
@@ -1061,9 +1061,11 @@ const MSH={n:'سعد الغامدي',u:i=>'https://server7.mp3quran.net/s_gmd/'+
 let mshOn=false,mshSeen=false,mshCur=mshIdx();
 function mshIdx(){const i=+(localStorage.getItem('mshS')||1);return i>=1&&i<=114?i:1;}
 function mshAuto(){return localStorage.getItem('mshAuto')!=='0';}
+function mshFromName(nm){for(let k=1;k<=114;k++)if(nm===mshName(k))return k;return 0;}
 function mshName(i){return MSH.n+' — سورة '+SURAHS[i-1][0];}
 function mshPlay(i){
   i=Math.max(1,Math.min(114,i));localStorage.setItem('mshS',i);const u=MSH.u(i),n=mshName(i);
+  if(window.Android&&Android.radioQueue&&mshAuto()){const L=[];for(let k=i;k<=114;k++)L.push(k);Android.radioQueue(L.map(MSH.u).join('\n'),L.map(mshName).join('\n'));mshCur=i;mshOn=false;setTimeout(renderRadio,150);return;}
   if(window.Android&&Android.radioPlay)Android.radioPlay(u,n);
   else{if(rdWeb){rdWeb.pause();rdWeb.src='';}rdWebI=-1;rdWebN=n;rdWeb=new Audio(u);rdWeb.play().catch(()=>{});rdWeb.onplaying=renderRadio;rdWeb.onerror=renderRadio;rdWeb.onended=renderRadio;}
   mshOn=true;mshSeen=false;mshCur=i;setTimeout(renderRadio,150);
@@ -1083,7 +1085,7 @@ function rdPlay(i){
 function rdStop(){mshOn=false;if(window.Android&&Android.radioStop)Android.radioStop();else if(rdWeb){rdWeb.pause();rdWeb.src='';rdWeb=null;}setTimeout(renderRadio,150);}
 function rdToggle(){const r=rdGet();if(r.st==='playing'||r.st==='buffering')rdStop();else rdPlay(rdIdx());}
 function rdPick(i){const r=rdGet(),on=r.st==='playing'||r.st==='buffering';if(on&&r.nm===STATIONS[i].n)rdStop();else rdPlay(i);}
-function rdWatch(on){clearInterval(rdTimer);if(on)rdTimer=setInterval(()=>{const s=rdGet().st;if(s!==rdState||s==='buffering')renderRadio();},1000);}
+let rdNm='';function rdWatch(on){clearInterval(rdTimer);if(on)rdTimer=setInterval(()=>{const g=rdGet(),s=g.st;if(s!==rdState||s==='buffering'||g.nm!==rdNm){rdNm=g.nm;renderRadio();}},1000);}
 
 /* ---------- تبويب الصلاة: الأذان والتقويم الهجري ---------- */
 const SHEIKHS=[['refaat','الشيخ محمد رفعت'],['abdulbasit','الشيخ عبد الباسط عبد الصمد'],['minshawi','الشيخ محمد صديق المنشاوي']];
@@ -1438,7 +1440,7 @@ document.addEventListener('click',e=>{
   if(!t){if(e.target.id==='dlg')closeDlg();return;}
   const D=t.dataset;
   if(D.rd==='toggle'){rdToggle();return;}
-  if(D.msh){const r=rdGet(),on=(r.st==='playing'||r.st==='buffering')&&r.nm&&r.nm.indexOf(MSH.n)===0,sel=+(document.getElementById('mshSel')||{value:mshIdx()}).value;
+  if(D.msh){const r=rdGet(),on=(r.st==='playing'||r.st==='buffering')&&r.nm&&r.nm.indexOf(MSH.n)===0;if(on&&mshFromName(r.nm))mshCur=mshFromName(r.nm);const sel=+(document.getElementById('mshSel')||{value:mshIdx()}).value;
     if(D.msh==='play'){if(on)rdStop();else mshPlay(sel);}else mshPlay(D.msh==='next'?Math.min(114,(on?mshCur:sel)+1):Math.max(1,(on?mshCur:sel)-1));return;}
   if(D.tj){tjOpen(D.tj,D.tjn);return;}
   if(D.tjclose!==undefined){tjClose();return;}
