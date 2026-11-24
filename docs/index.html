@@ -142,6 +142,7 @@ textarea{min-height:80px;resize:vertical}
 .erow small{color:var(--mute);display:block}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 label.f{display:block;font-size:13px;color:var(--mute);margin-top:6px}
+.rst{display:flex;gap:10px;align-items:center;padding:9px 6px;border-top:1px solid rgba(255,255,255,.07);cursor:pointer}.rst>span{width:28px;text-align:center;font-size:18px}.rst.sel{background:rgba(212,175,55,.12);border-radius:10px}
 </style>
 </head>
 <body>
@@ -983,37 +984,68 @@ function upStart(){
 }
 
 /* ---------- الراديو ---------- */
-const STATIONS=[{id:'cairo',n:'إذاعة القرآن الكريم من القاهرة',d:'٩٨.٢ FM — بث مباشر',url:'https://stream.radiojar.com/8s5u5tpdtwzuv'}];
-let rdState='stopped',rdTimer=null,rdWeb=null,rdSel=0;
+const STATIONS=[
+ {g:'إذاعات رسمية',n:'إذاعة القرآن الكريم من القاهرة',d:'مصر — ٩٨.٢ FM',url:'https://stream.radiojar.com/8s5u5tpdtwzuv'},
+ {g:'إذاعات رسمية',n:'إذاعة القرآن الكريم من مكة',d:'السعودية',url:'https://stream.radiojar.com/4wqre23fytzuv'},
+ {g:'إذاعات رسمية',n:'إذاعة القرآن الكريم من الكويت',d:'الكويت — ٩٨.٩ FM',url:'https://kwtkrdota.cdn.mangomolo.com/qrrdo/qrrdo.stream_aac/chunklist.m3u8'},
+ {g:'إذاعات رسمية',n:'إذاعة القرآن الكريم من قطر',d:'قطر — ١٠٣.٤ FM',url:'https://live.kwikmotion.com/qmcquranradiolive/quranradio/playlist.m3u8'},
+ {g:'إذاعات رسمية',n:'إذاعة القرآن الكريم من قطر ٢',d:'قطر — ١٠٦ FM',url:'https://live.kwikmotion.com/qmcquranradio2live/quranradio2/playlist.m3u8'},
+ {g:'إذاعات رسمية',n:'إذاعة القرآن الكريم من الشارقة',d:'الإمارات',url:'https://svs.itworkscdn.net/smcquranlive/quranradiolive/icecast.audio'},
+ {g:'إذاعات رسمية',n:'إذاعة القرآن الكريم من البحرين',d:'البحرين',url:'https://5c7b683162943.streamlock.net:443/live/ngrp:radio-106-1_all/playlist.m3u8'},
+ {g:'إذاعات رسمية',n:'إذاعة القرآن الكريم من عمّان',d:'الأردن',url:'https://jrtv-live.ercdn.net/jrradio/quranradio.m3u8'},
+ {g:'إذاعات رسمية',n:'إذاعة القرآن الكريم من مسقط',d:'عُمان',url:'https://partwota.cdn.mgmlcdn.com/quranrdoorg/quranrdo.stream_aac/chunklist.m3u8'},
+ {g:'إذاعات رسمية',n:'إذاعة القرآن الكريم من الرباط',d:'المغرب',url:'https://asmaki.ma:8000/radio.mp3'},
+ {g:'إذاعات رسمية',n:'إذاعة القرآن الكريم من إسلام آباد',d:'باكستان',url:'https://whmsonic.radio.gov.pk:7002/stream?type=http&nocache=12'},
+ {g:'قرّاء',n:'عبد الباسط عبد الصمد — مجوّد',d:'بث متواصل',url:'https://backup.qurango.net/radio/abdulbasit_abdulsamad_mojawwad'},
+ {g:'قرّاء',n:'مشاري العفاسي',d:'بث متواصل',url:'https://backup.qurango.net/radio/mishary_alafasi'},
+ {g:'قرّاء',n:'عبد الرحمن السديس',d:'بث متواصل',url:'https://backup.qurango.net/radio/abdulrahman_alsudaes'},
+ {g:'قرّاء',n:'ياسر الدوسري',d:'بث متواصل',url:'https://backup.qurango.net/radio/yasser_aldosari'},
+ {g:'قرّاء',n:'تلاوات خاشعة',d:'بث متواصل',url:'https://backup.qurango.net/radio/salma'},
+ {g:'قرّاء',n:'تلاوات متنوعة',d:'بث متواصل',url:'https://backup.qurango.net/radio/mix'},
+ {g:'موضوعات',n:'سورة البقرة',d:'تتكرر طول اليوم',url:'https://backup.qurango.net/radio/albaqarah'},
+ {g:'موضوعات',n:'الرقية الشرعية',d:'بث متواصل',url:'https://qurango.net/radio/roqiah'},
+ {g:'موضوعات',n:'تفسير القرآن',d:'بث متواصل',url:'https://backup.qurango.net/radio/tafseer'},
+ {g:'موضوعات',n:'تراتيل قصيرة',d:'بث متواصل',url:'https://qurango.net/radio/tarateel'}
+];
+let rdState='stopped',rdTimer=null,rdWeb=null,rdSel=0,rdWebI=-1;
+function rdIdx(){let i=+(localStorage.getItem('rdSt')||0);return (i>=0&&i<STATIONS.length)?i:0;}
 function rdGet(){
   if(window.Android&&Android.radioState){try{const [st,nm,at]=Android.radioState().split('|');return {st,nm,at:+at||0};}catch(e){}}
-  if(rdWeb)return {st:rdWeb.paused?'stopped':(rdWeb.readyState>=3?'playing':'buffering'),nm:STATIONS[0].n,at:0};
+  if(rdWeb)return {st:rdWeb.error?'error':rdWeb.paused?'stopped':(rdWeb.readyState>=3?'playing':'buffering'),nm:(STATIONS[rdWebI]||{}).n||'',at:0};
   return {st:'stopped',nm:'',at:0};
 }
 function renderRadio(){
-  const el=document.getElementById('radio');if(!el)return;const r=rdGet(),st=STATIONS[0];rdState=r.st;
-  const label={stopped:'دوس للتشغيل',buffering:'جارٍ الاتصال بالبث…',playing:'🔴 بث مباشر الآن',error:'تعذّر الاتصال — اتأكد من الإنترنت وجرّب تاني'}[r.st]||'';
+  const el=document.getElementById('radio');if(!el)return;const r=rdGet();rdState=r.st;
+  let ci=rdIdx();if(r.nm&&r.st!=='stopped'){const k=STATIONS.findIndex(x=>x.n===r.nm);if(k>=0)ci=k;}
+  const st=STATIONS[ci],on=r.st==='playing'||r.st==='buffering';
+  const label={stopped:'دوس للتشغيل',buffering:'جارٍ الاتصال بالبث…',playing:'🔴 بث مباشر الآن',error:'تعذّر الاتصال — جرّب إذاعة تانية أو اتأكد من الإنترنت'}[r.st]||'';
   const left=r.at?Math.max(0,Math.round((r.at-Date.now())/60000)):0;
-  let h='<h2>📻 الراديو</h2><div class="card" style="text-align:center"><b style="font-size:19px">'+esc(st.n)+'</b><div class="muted">'+st.d+'</div>'+
-    '<div class="rbtn'+(r.st==='playing'?' on':r.st==='buffering'?' wait':'')+'" data-rd="toggle">'+(r.st==='playing'||r.st==='buffering'?'⏸':'▶')+'</div>'+
+  let h='<h2>📻 الراديو</h2><div class="card" style="text-align:center"><b style="font-size:19px">'+esc(st.n)+'</b><div class="muted">'+esc(st.d)+'</div>'+
+    '<div class="rbtn'+(r.st==='playing'?' on':r.st==='buffering'?' wait':'')+'" data-rd="toggle">'+(on?'⏸':'▶')+'</div>'+
     '<div class="'+(r.st==='error'?'err':'muted')+'">'+label+'</div></div>';
+  let g='';
+  STATIONS.forEach((x,i)=>{
+    if(x.g!==g){if(g)h+='</div>';g=x.g;h+='<div class="card"><b>'+esc(g)+'</b>';}
+    const cur=i===ci&&on;
+    h+='<div class="rst'+(i===ci?' sel':'')+'" data-rdst="'+i+'"><span>'+(cur?(r.st==='playing'?'🔊':'⏳'):'▶')+'</span><div><div>'+esc(x.n)+'</div><div class="muted">'+esc(x.d)+'</div></div></div>';
+  });
+  h+='</div>';
   if(window.Android&&Android.radioPlay){
     h+='<div class="card"><b>⏲ إيقاف تلقائي</b>'+(left?'<span class="muted"> — هيقف بعد '+AR(left)+' دقيقة</span>':'')+'<div class="chips">'+[[0,'من غير'],[15,'١٥ د'],[30,'٣٠ د'],[60,'ساعة'],[90,'ساعة ونص']].map(x=>'<span class="chip'+((x[0]===0&&!left)||(left&&x[0]===rdSel)?' on':'')+'" data-rdsleep="'+x[0]+'">'+x[1]+'</span>').join('')+'</div>'+
       '<div class="muted">الراديو بيكمّل والشاشة مقفولة، وتقدر توقفه من الإشعار. ولو جه وقت الأذان، الراديو بيقف لوحده.</div></div>';
   } else if(window.Android) h+='<div class="card due">نزّل آخر نسخة من التطبيق عشان الراديو يشتغل في الخلفية.<div class="prow"><button class="gold" data-apk>تنزيل التحديث</button></div></div>';
-  h+='<p class="muted" style="text-align:center">البث من راديو القرآن الكريم (عبر radiojar). محتاج إنترنت.</p>';
+  h+='<p class="muted" style="text-align:center">الإذاعات من دليل surahquran.com. محتاج إنترنت.</p>';
   el.innerHTML=h;
 }
-function rdToggle(){
-  const r=rdGet(),st=STATIONS[0];
-  if(window.Android&&Android.radioPlay){
-    if(r.st==='playing'||r.st==='buffering')Android.radioStop();else Android.radioPlay(st.url,st.n);
-  } else {
-    if(rdWeb&&!rdWeb.paused){rdWeb.pause();rdWeb.src='';rdWeb=null;}
-    else{rdWeb=new Audio(st.url);rdWeb.play().catch(()=>{});rdWeb.onplaying=renderRadio;rdWeb.onerror=renderRadio;}
-  }
-  renderRadio();
+function rdPlay(i){
+  const st=STATIONS[i];localStorage.setItem('rdSt',i);
+  if(window.Android&&Android.radioPlay){Android.radioPlay(st.url,st.n);}
+  else{if(rdWeb){rdWeb.pause();rdWeb.src='';}rdWebI=i;rdWeb=new Audio(st.url);rdWeb.play().catch(()=>{});rdWeb.onplaying=renderRadio;rdWeb.onerror=renderRadio;}
+  setTimeout(renderRadio,150);
 }
+function rdStop(){if(window.Android&&Android.radioStop)Android.radioStop();else if(rdWeb){rdWeb.pause();rdWeb.src='';rdWeb=null;}setTimeout(renderRadio,150);}
+function rdToggle(){const r=rdGet();if(r.st==='playing'||r.st==='buffering')rdStop();else rdPlay(rdIdx());}
+function rdPick(i){const r=rdGet(),on=r.st==='playing'||r.st==='buffering';if(on&&r.nm===STATIONS[i].n)rdStop();else rdPlay(i);}
 function rdWatch(on){clearInterval(rdTimer);if(on)rdTimer=setInterval(()=>{const s=rdGet().st;if(s!==rdState||s==='buffering')renderRadio();},1000);}
 
 /* ---------- تبويب الصلاة: الأذان والتقويم الهجري ---------- */
@@ -1282,10 +1314,11 @@ document.addEventListener('change',e=>{
   if(e.target.id==='qSurah'||e.target.id==='qReciter'||e.target.id==='qTafsir')loadSurah(document.getElementById('qSurah').value,document.getElementById('qReciter').value,document.getElementById('qTafsir').value);
 });
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-rd],[data-rdsleep],[data-ad],[data-ads],[data-adp],[data-adplay],[data-hc],[data-wis],[data-bk],[data-mt],[data-mthz],[data-wtoggle],[data-wtype],[data-wday],[data-wstart],[data-wend],[data-wdel],[data-cmode],[data-qloc],[data-qlocset],[data-dk],[data-dkev],[data-dkph],[data-speak],[data-speaktest],[data-ttsset],[data-test],[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
+  const t=e.target.closest('[data-rd],[data-rdst],[data-rdsleep],[data-ad],[data-ads],[data-adp],[data-adplay],[data-hc],[data-wis],[data-bk],[data-mt],[data-mthz],[data-wtoggle],[data-wtype],[data-wday],[data-wstart],[data-wend],[data-wdel],[data-cmode],[data-qloc],[data-qlocset],[data-dk],[data-dkev],[data-dkph],[data-speak],[data-speaktest],[data-ttsset],[data-test],[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
   if(!t){if(e.target.id==='dlg')closeDlg();return;}
   const D=t.dataset;
   if(D.rd==='toggle'){rdToggle();return;}
+  if(D.rdst!==undefined){rdPick(+D.rdst);return;}
   if(D.rdsleep!==undefined){rdSel=+D.rdsleep;try{Android.radioSleep(+D.rdsleep);}catch(e){}setTimeout(renderRadio,300);return;}
   if(D.ad==='toggle'){settings.adhan=Object.assign(adhanCfg(),{on:!adhanCfg().on});mark('settings');adhanSent='';syncAdhan();renderAdhan();return;}
   if(D.ad==='stop'){try{Android.stopAdhan();}catch(e){}try{adPreview&&adPreview.pause();}catch(e){}return;}
