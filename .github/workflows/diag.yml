@@ -5,8 +5,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          for u in https://stream.radiojar.com/8s5u5tpdtwzuv; do
-            echo "== $u"; curl -s -o /dev/null -D - -m 8 "$u" | head -20 || true
-            curl -sL -m 6 "$u" -o s.bin -w 'final=%{http_code} %{url_effective} %{content_type}\n' || true
-            ls -la s.bin; xxd s.bin | head -3
+          for p in Cairo Saudi Algeria Morocco UAE USA noor Khashia Mix Sudais Dosari Afasi Abdulbasit Baqarah Tafseer Qatar Qatar106 Bahrain Jordan Kuwait Oman Pakistan Palestine Sharjah; do
+            h=$(curl -sL -m 15 -A "Mozilla/5.0" "https://surahquran.com/Radio-Quran-$p.html")
+            t=$(echo "$h" | grep -o '<title>[^<]*' | head -1 | sed 's/<title>//')
+            for u in $(echo "$h" | grep -oE 'https?://[^"'"'"' <>]+' | grep -iE 'stream|radio|\.mp3|m3u8|:[0-9]{4}|live|icecast|zeno|listen' | grep -viE 'surahquran\.com|\.(png|jpg|css|js|html)|facebook|twitter|google' | sort -u); do
+              r=$(curl -sL -m 6 -r 0-2000 -o /dev/null -w '%{http_code} %{content_type} %{url_effective}' "$u" 2>/dev/null)
+              echo "ST|$p|$t|$u|$r"
+            done
           done

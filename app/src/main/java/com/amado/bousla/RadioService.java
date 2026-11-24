@@ -28,6 +28,7 @@ public class RadioService extends Service {
     private PowerManager.WakeLock wake;
     private WifiManager.WifiLock wifi;
     private final Handler h = new Handler(Looper.getMainLooper());
+    private final Runnable timeout = () -> { if ("buffering".equals(state)) { state = "error"; stopSelf(); } };
     private final Runnable sleepCheck = new Runnable() {
         @Override public void run() {
             if (stopAt > 0 && System.currentTimeMillis() >= stopAt) { stopSelf(); return; }
@@ -85,10 +86,11 @@ public class RadioService extends Service {
                     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build());
             mp.setWakeMode(this, PowerManager.PARTIAL_WAKE_LOCK);
             mp.setDataSource(url);
-            mp.setOnPreparedListener(m -> { m.start(); state = "playing"; });
+            mp.setOnPreparedListener(m -> { h.removeCallbacks(timeout); m.start(); state = "playing"; });
             mp.setOnErrorListener((m, w, e) -> { state = "error"; h.postDelayed(this::stopSelf, 500); return true; });
             mp.setOnCompletionListener(m -> { state = "stopped"; stopSelf(); });
             mp.prepareAsync();
+            h.removeCallbacks(timeout); h.postDelayed(timeout, 20000);
             WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
             if (wm != null) { wifi = wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "bousla:radio"); wifi.acquire(); }
         } catch (Exception e) { state = "error"; stopSelf(); }
