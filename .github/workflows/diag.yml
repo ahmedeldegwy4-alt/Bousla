@@ -1,0 +1,13 @@
+name: Diag stream
+on: workflow_dispatch
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          set +e
+          sudo apt-get install -y -qq ffmpeg >/dev/null
+          python3 -c "import json;print(json.load(open('/dev/stdin'))['batches'][0]['url'])" < <(curl -s https://raw.githubusercontent.com/ahmedeldegwy4-alt/Bousla/main/voices/urls.json) > u.txt
+          curl -sL "$(cat u.txt)" -o a.mp3
+          for n in -35 -32 -30; do echo "N$n"; ffmpeg -ss 28 -to 35 -i a.mp3 -af silencedetect=noise=${n}dB:d=0.1 -f null - 2>&1 | grep -oE 'silence_(start|end): [0-9.]+' | tr '\n' ' '; echo; done
+          ffmpeg -ss 28 -to 35 -i a.mp3 -af astats=metadata=1:reset=4410,ametadata=print:key=lavfi.astats.Overall.RMS_level -f null - 2>&1 | grep -oE 'pts_time:[0-9.]+|RMS_level=[-0-9.inf]+' | paste - - | awk '{split($1,a,":");split($2,b,"=");printf "%.1f:%s ",a[2]+28,int(b[2])}'; echo
