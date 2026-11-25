@@ -1,29 +1,10 @@
 {
- "batches": [
-  {
-   "url": "https://elevenlabsusercontent.com/database/workspace/695bfc712a2545cd807b8ecb4083941f/content_generation/hBILFnyAoIsV0Rq7LEf4/gUSa00oOctInhubBhtT5/content.mp3?Expires=1795611600&KeyName=assets-cdn-key-1&Signature=nldnUTU_KRsMkp8ANPF9qDdjnxo=",
-   "order": [
-    "dk6",
-    "dk7",
-    "dk8",
-    "dk9",
-    "dk10",
-    "dk11",
-    "dk12",
-    "dk13",
-    "dk14"
-   ],
-   "texts": [
-    "سبحان الله وبحمده عدد خلقه ورضا نفسه وزنة عرشه ومداد كلماته",
-    "لا إله إلا أنت سبحانك إني كنت من الظالمين",
-    "حسبي الله لا إله إلا هو عليه توكلت وهو رب العرش العظيم",
-    "رضيت بالله ربا وبالإسلام دينا وبمحمد صلى الله عليه وسلم نبيا",
-    "يا حي يا قيوم برحمتك أستغيث أصلح لي شأني كله",
-    "اللهم إنك عفو تحب العفو فاعف عني",
-    "ربنا آتنا في الدنيا حسنة وفي الآخرة حسنة وقنا عذاب النار",
-    "اللهم أعني على ذكرك وشكرك وحسن عبادتك",
-    "يا مقلب القلوب ثبت قلبي على دينك"
-   ]
-  }
- ]
+ "single": {
+  "dk6": "https://elevenlabsusercontent.com/database/workspace/695bfc712a2545cd807b8ecb4083941f/content_generation/EKxbdCHrsb8VSaUJRGMk/Zun9eWbYsi8je0p0oCHj/content.mp3?Expires=1795611600&KeyName=assets-cdn-key-1&Signature=xbWHSo7Px3ZgoApwbTsHDKw5sHU=",
+  "dk7": "https://elevenlabsusercontent.com/database/workspace/695bfc712a2545cd807b8ecb4083941f/content_generation/56WisUBV6F6D5mytd41e/XaTUaIzVTwJ8HhdvqEQt/content.mp3?Expires=1795611600&KeyName=assets-cdn-key-1&Signature=5ERCy9MXzfgq9WPq3cyPw5jEnrU=",
+  "dk11": "https://elevenlabsusercontent.com/database/workspace/695bfc712a2545cd807b8ecb4083941f/content_generation/G6CriQPt9N8ygO5OX32V/WXJjocwAExmP0Q0JqGG8/content.mp3?Expires=1795611600&KeyName=assets-cdn-key-1&Signature=rpAYhSpSTUyS7ZOEqQ0jijDrA9g=",
+  "dk12": "https://elevenlabsusercontent.com/database/workspace/695bfc712a2545cd807b8ecb4083941f/content_generation/Id8JI2u5slyRjzshwE1s/6rdKIbPUiJjnYWDz0SIN/content.mp3?Expires=1795611600&KeyName=assets-cdn-key-1&Signature=WmNQ6u-viHV4TMnWgCgYxxP5H1A=",
+  "dk13": "https://elevenlabsusercontent.com/database/workspace/695bfc712a2545cd807b8ecb4083941f/content_generation/zUD9tTo5BwKnD3lbWJ17/Q5mVSAg0Px4AuwrgN4aK/content.mp3?Expires=1795611600&KeyName=assets-cdn-key-1&Signature=9oJoXeKW3KV5ArJEaTAeRMuvrcc=",
+  "dk14": "https://elevenlabsusercontent.com/database/workspace/695bfc712a2545cd807b8ecb4083941f/content_generation/uDIC5OsuRNVJspOl2jLP/EqiLYFFvmpVOmiEEnVMx/content.mp3?Expires=1795611600&KeyName=assets-cdn-key-1&Signature=zKGPr4ojujcxSj5lsYcSjNNHy7E="
+ }
 }
