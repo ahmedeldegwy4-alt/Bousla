@@ -16,14 +16,46 @@ import java.util.Locale;
 final class Speaker {
     static boolean enabled(Context c) { return Store.p(c).getBoolean("speak", true); }
 
-    /** Plays voices/<clip>.mp3 from the app if it exists, otherwise reads text with TTS. */
+    // One voice at a time: reminders that arrive together are spoken one after another.
+    private static final java.util.ArrayDeque<Runnable> queue = new java.util.ArrayDeque<>();
+    private static boolean busy = false;
+    private static final Handler main = new Handler(Looper.getMainLooper());
+
+    private static void enqueue(Runnable job, BroadcastReceiver.PendingResult pr) {
+        main.post(() -> {
+            if (busy && pr != null) try { pr.finish(); } catch (Exception ignored) {}
+            queue.add(job);
+            if (!busy) next();
+        });
+    }
+    private static void next() {
+        Runnable r = queue.poll();
+        if (r == null) { busy = false; return; }
+        busy = true;
+        r.run();
+    }
+    private static void done() { main.postDelayed(Speaker::next, 1200); }
+
+    /** Plays voices/<clip>.mp3 from the app if it exists, otherwise reads text with TTS. Queued. */
     static void say(Context ctx, String clip, String text, BroadcastReceiver.PendingResult pr) {
+        final boolean[] wasQueued = {false};
+        main.post(() -> wasQueued[0] = busy);
+        enqueue(() -> sayNow(ctx, clip, text, wasQueued[0] ? null : pr), pr);
+    }
+
+    static void speak(Context ctx, String text, BroadcastReceiver.PendingResult pr) {
+        final boolean[] wasQueued = {false};
+        main.post(() -> wasQueued[0] = busy);
+        enqueue(() -> speakNow(ctx, text, wasQueued[0] ? null : pr), pr);
+    }
+
+    private static void sayNow(Context ctx, String clip, String text, BroadcastReceiver.PendingResult pr) {
         final Context c = ctx.getApplicationContext();
         AssetFileDescriptor fd = null;
         if (clip != null) {
             try { fd = c.getAssets().openFd("voices/" + clip + ".mp3"); } catch (Exception ignored) {}
         }
-        if (fd == null) { speak(c, text, pr); return; }
+        if (fd == null) { speakNow(c, text, pr); return; }
         final Handler h = new Handler(Looper.getMainLooper());
         final boolean[] done = {false};
         final MediaPlayer mp = new MediaPlayer();
@@ -32,6 +64,7 @@ final class Speaker {
             done[0] = true;
             try { mp.release(); } catch (Exception ignored) {}
             if (pr != null) try { pr.finish(); } catch (Exception ignored) {}
+            done();
         };
         h.postDelayed(finish, 9000);
         try {
@@ -46,12 +79,13 @@ final class Speaker {
             mp.start();
             status(c, "ok");
         } catch (Exception e) {
-            finish.run();
-            speak(c, text, null);
+            done[0] = true;
+            try { mp.release(); } catch (Exception ignored) {}
+            speakNow(c, text, pr);
         }
     }
 
-    static void speak(Context ctx, String text, BroadcastReceiver.PendingResult pr) {
+    private static void speakNow(Context ctx, String text, BroadcastReceiver.PendingResult pr) {
         final Context c = ctx.getApplicationContext();
         final Handler h = new Handler(Looper.getMainLooper());
         final TextToSpeech[] tts = new TextToSpeech[1];
@@ -61,6 +95,7 @@ final class Speaker {
             done[0] = true;
             try { if (tts[0] != null) tts[0].shutdown(); } catch (Exception ignored) {}
             if (pr != null) try { pr.finish(); } catch (Exception ignored) {}
+            done();
         };
         h.postDelayed(finish, 9000); // never hold the broadcast longer than this
         try {

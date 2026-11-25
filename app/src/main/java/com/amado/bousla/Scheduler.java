@@ -106,10 +106,11 @@ final class Scheduler {
             if (!d.optBoolean("on", false)) return;
             int every = Math.max(15, d.optInt("every", 60));
             int from = d.optInt("from", 8), to = d.optInt("to", 22);
+            int off = Math.max(0, Math.min(59, d.optInt("off", 7)));   // own minute, away from action reminders
             if (to <= from) to = from + 1;
             Calendar now = Calendar.getInstance();
             int m = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE);
-            int start = from * 60, end = to * 60, next;
+            int start = from * 60 + off, end = to * 60 + off, next;
             if (m < start) next = start;
             else next = start + ((m - start) / every + 1) * every;
             Calendar cal = Calendar.getInstance();

@@ -1,5 +1,29 @@
 {
- "single": {
-  "test": "https://elevenlabsusercontent.com/database/workspace/695bfc712a2545cd807b8ecb4083941f/content_generation/6EEY3rHR2CfGGqjq4zhO/HGvaUDvNrK5RIjdByytn/content.mp3?Expires=1795456800&KeyName=assets-cdn-key-1&Signature=IjsdgU3l_WXBaK72Rv97Bvg5tJw="
- }
+ "batches": [
+  {
+   "url": "https://elevenlabsusercontent.com/database/workspace/695bfc712a2545cd807b8ecb4083941f/content_generation/hBILFnyAoIsV0Rq7LEf4/gUSa00oOctInhubBhtT5/content.mp3?Expires=1795611600&KeyName=assets-cdn-key-1&Signature=nldnUTU_KRsMkp8ANPF9qDdjnxo=",
+   "order": [
+    "dk6",
+    "dk7",
+    "dk8",
+    "dk9",
+    "dk10",
+    "dk11",
+    "dk12",
+    "dk13",
+    "dk14"
+   ],
+   "texts": [
+    "سبحان الله وبحمده عدد خلقه ورضا نفسه وزنة عرشه ومداد كلماته",
+    "لا إله إلا أنت سبحانك إني كنت من الظالمين",
+    "حسبي الله لا إله إلا هو عليه توكلت وهو رب العرش العظيم",
+    "رضيت بالله ربا وبالإسلام دينا وبمحمد صلى الله عليه وسلم نبيا",
+    "يا حي يا قيوم برحمتك أستغيث أصلح لي شأني كله",
+    "اللهم إنك عفو تحب العفو فاعف عني",
+    "ربنا آتنا في الدنيا حسنة وفي الآخرة حسنة وقنا عذاب النار",
+    "اللهم أعني على ذكرك وشكرك وحسن عبادتك",
+    "يا مقلب القلوب ثبت قلبي على دينك"
+   ]
+  }
+ ]
 }
