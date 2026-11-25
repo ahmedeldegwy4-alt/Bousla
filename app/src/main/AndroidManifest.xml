@@ -38,6 +38,10 @@
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_large_info"/>
         </receiver>
+        <receiver android:name=".Widgets$Prayer" android:exported="false" android:label="مواقيت الصلاة — بوصلة قلبك">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_prayer_info"/>
+        </receiver>
         <receiver android:name=".Installer$Result" android:exported="false"/>
         <service android:name=".RadioService" android:exported="false" android:foregroundServiceType="mediaPlayback"/>
         <service android:name=".AdhanService" android:exported="false" android:foregroundServiceType="mediaPlayback"/>
