@@ -36,6 +36,18 @@ final class Speaker {
     }
     private static void done() { main.postDelayed(Speaker::next, 1200); }
 
+    // What is playing now, so it can be stopped (notification dismissed, or a call comes in).
+    private static Runnable current = null;
+
+    /** Stops the voice now and drops anything waiting. */
+    static void stopAll() {
+        main.post(() -> {
+            queue.clear();
+            Runnable r = current; current = null;
+            if (r != null) try { r.run(); } catch (Exception ignored) {}
+        });
+    }
+
     /** Plays voices/<clip>.mp3 from the app if it exists, otherwise reads text with TTS. Queued. */
     static void say(Context ctx, String clip, String text, BroadcastReceiver.PendingResult pr) {
         final boolean[] wasQueued = {false};
@@ -59,13 +71,20 @@ final class Speaker {
         final Handler h = new Handler(Looper.getMainLooper());
         final boolean[] done = {false};
         final MediaPlayer mp = new MediaPlayer();
+        final CallGuard[] g = {null};
         final Runnable finish = () -> {
             if (done[0]) return;
             done[0] = true;
+            if (g[0] != null) g[0].stop();
+            current = null;
+            try { mp.stop(); } catch (Exception ignored) {}
             try { mp.release(); } catch (Exception ignored) {}
             if (pr != null) try { pr.finish(); } catch (Exception ignored) {}
             done();
         };
+        g[0] = new CallGuard(c, finish);
+        if (!g[0].start(AudioAttributes.USAGE_NOTIFICATION)) { try { fd.close(); } catch (Exception ignored) {} finish.run(); return; }
+        current = finish;
         h.postDelayed(finish, 9000);
         try {
             mp.setAudioAttributes(new AudioAttributes.Builder()
@@ -80,6 +99,7 @@ final class Speaker {
             status(c, "ok");
         } catch (Exception e) {
             done[0] = true;
+            g[0].stop(); current = null;
             try { mp.release(); } catch (Exception ignored) {}
             speakNow(c, text, pr);
         }
@@ -90,13 +110,19 @@ final class Speaker {
         final Handler h = new Handler(Looper.getMainLooper());
         final TextToSpeech[] tts = new TextToSpeech[1];
         final boolean[] done = {false};
+        final CallGuard[] g = {null};
         final Runnable finish = () -> {
             if (done[0]) return;
             done[0] = true;
-            try { if (tts[0] != null) tts[0].shutdown(); } catch (Exception ignored) {}
+            if (g[0] != null) g[0].stop();
+            current = null;
+            try { if (tts[0] != null) { tts[0].stop(); tts[0].shutdown(); } } catch (Exception ignored) {}
             if (pr != null) try { pr.finish(); } catch (Exception ignored) {}
             done();
         };
+        g[0] = new CallGuard(c, finish);
+        if (!g[0].start(AudioAttributes.USAGE_NOTIFICATION)) { finish.run(); return; }
+        current = finish;
         h.postDelayed(finish, 9000); // never hold the broadcast longer than this
         try {
             tts[0] = new TextToSpeech(c, status -> h.post(() -> {

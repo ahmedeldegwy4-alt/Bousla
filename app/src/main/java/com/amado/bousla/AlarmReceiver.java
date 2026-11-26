@@ -42,6 +42,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         int code = in.getIntExtra("code", 0);
 
         if ("snooze".equals(kind)) {
+            Speaker.stopAll();
             NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
             nm.cancel(in.getIntExtra("notif", 0));
             Intent again = Scheduler.alarmIntent(c, in.getStringExtra("orig"), id, title, 0, 0, false);
@@ -52,6 +53,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         }
 
         if ("widget".equals(kind)) { Widgets.updateAll(c); return; }
+        if ("hush".equals(kind)) { Speaker.stopAll(); return; }
 
         if ("adhan".equals(kind)) {
             long when = in.getLongExtra("when", 0);
@@ -158,6 +160,12 @@ public class AlarmReceiver extends BroadcastReceiver {
     }
 
     static final String CH_DHIKR = "bousla_dhikr";
+
+    /** Swiping the notification away stops its voice. */
+    static PendingIntent hush(Context c) {
+        Intent i = new Intent(c, AlarmReceiver.class).putExtra("kind", "hush");
+        return PendingIntent.getBroadcast(c, 7990, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
     static final String CH_WISDOM = "bousla_wisdom";
 
     static void startAdhan(Context c, String prayerName) {
@@ -202,7 +210,7 @@ public class AlarmReceiver extends BroadcastReceiver {
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, CH_WISDOM) : new Notification.Builder(c);
             b.setSmallIcon(R.drawable.ic_stat).setContentTitle(title).setContentText(it.optString("t"))
-                    .setStyle(new Notification.BigTextStyle().bigText(body)).setAutoCancel(true).setContentIntent(pi);
+                    .setStyle(new Notification.BigTextStyle().bigText(body)).setAutoCancel(true).setDeleteIntent(hush(c)).setContentIntent(pi);
             nm.notify(7998, b.build());
             return true;
         } catch (Exception e) { return false; }
@@ -243,7 +251,7 @@ public class AlarmReceiver extends BroadcastReceiver {
                 .setContentTitle("📿 " + phrase)
                 .setContentText("ذكر خفيف على اللسان، ثقيل في الميزان")
                 .setAutoCancel(true)
-                .setContentIntent(pi)
+                .setDeleteIntent(hush(c)).setContentIntent(pi)
                 .setCategory(Notification.CATEGORY_REMINDER);
         if (Build.VERSION.SDK_INT >= 26) b.setTimeoutAfter(20 * 60 * 1000L);
         nm.notify(7999, b.build());
@@ -276,7 +284,7 @@ public class AlarmReceiver extends BroadcastReceiver {
                 .setContentText(text)
                 .setStyle(new Notification.BigTextStyle().bigText(text))
                 .setAutoCancel(true)
-                .setContentIntent(piOpen)
+                .setDeleteIntent(hush(c)).setContentIntent(piOpen)
                 .setCategory(Notification.CATEGORY_REMINDER);
         if (Build.VERSION.SDK_INT < 26) b.setPriority(Notification.PRIORITY_HIGH).setDefaults(Notification.DEFAULT_ALL);
 

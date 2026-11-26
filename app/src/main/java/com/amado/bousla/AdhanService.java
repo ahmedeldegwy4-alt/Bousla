@@ -18,6 +18,7 @@ public class AdhanService extends Service {
     static final String CH = "bousla_adhan";
     static final int NOTIF = 7997;
     private MediaPlayer mp;
+    private CallGuard guard;
 
     @Override public IBinder onBind(Intent i) { return null; }
 
@@ -54,6 +55,8 @@ public class AdhanService extends Service {
 
     private void play(String sheikh) {
         release();
+        guard = new CallGuard(this, this::stopSelf);
+        if (!guard.start(AudioAttributes.USAGE_ALARM)) { stopSelf(); return; }   // in a call: no adhan sound
         try {
             AssetFileDescriptor fd = getAssets().openFd("adhan/" + sheikh + ".mp3");
             mp = new MediaPlayer();
@@ -69,6 +72,7 @@ public class AdhanService extends Service {
     }
 
     private void release() {
+        if (guard != null) { guard.stop(); guard = null; }
         if (mp != null) { try { mp.stop(); } catch (Exception ignored) {} try { mp.release(); } catch (Exception ignored) {} mp = null; }
     }
 
