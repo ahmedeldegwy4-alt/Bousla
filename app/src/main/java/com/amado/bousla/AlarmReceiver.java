@@ -61,20 +61,26 @@ public class AlarmReceiver extends BroadcastReceiver {
             // skip a stale alarm (e.g. phone was off at prayer time)
             if (when > 0 && System.currentTimeMillis() - when > 10 * 60 * 1000L) return;
             startAdhan(c, title);
+            mark(c);
             return;
         }
 
         if ("wisdom".equals(kind)) {
             if (in.getBooleanExtra("daily", false)) Scheduler.scheduleWisdom(c);
-            notifyWisdom(c);
+            long w = waitMs(c);
+            if (w > 0) { defer(c, in, "wisdom", Scheduler.CODE_WISDOM, w); return; }
+            if (notifyWisdom(c)) mark(c);
             return;
         }
 
         if ("dhikr".equals(kind)) {
             Scheduler.scheduleDhikr(c);
+            if (waitMs(c) > 0) return;   // too close to another notification: skip this one
             String[] ph = nextDhikr(c);
             if (ph == null) return;
-            if (notifyDhikr(c, ph[0]) && Speaker.enabled(c)) Speaker.say(c, ph[1], ph[0], goAsync());
+            boolean ok = notifyDhikr(c, ph[0]);
+            if (ok) mark(c);
+            if (ok && Speaker.enabled(c)) Speaker.say(c, ph[1], ph[0], goAsync());
             return;
         }
 
@@ -155,11 +161,38 @@ public class AlarmReceiver extends BroadcastReceiver {
             default:
                 return;
         }
-        boolean shown = notify(c, code, nTitle, nText, openKind, id, kind, title);
+        if (!"test".equals(kind)) {
+            long w = waitMs(c);
+            if (w > 0) { defer(c, in, kind, in.getIntExtra("orig", code), w); return; }
+        }
+        int nid = in.getIntExtra("orig", code);
+        boolean shown = notify(c, nid, nTitle, nText, openKind, id, kind, title);
+        if (shown && !"test".equals(kind)) mark(c);
         if (shown && Speaker.enabled(c)) Speaker.say(c, clip, say, goAsync());
     }
 
     static final String CH_DHIKR = "bousla_dhikr";
+
+    /** Minimum minutes between two notifications (0 = off). */
+    static long gapMs(Context c) { return Store.p(c).getInt("gap", 10) * 60_000L; }
+    static void mark(Context c) { Store.p(c).edit().putLong("lastNotif", System.currentTimeMillis()).apply(); }
+    /** ms to wait before another notification may come, 0 if it can come now. */
+    static long waitMs(Context c) {
+        long g = gapMs(c); if (g <= 0) return 0;
+        long w = Store.p(c).getLong("lastNotif", 0) + g - System.currentTimeMillis();
+        return w > 0 && w <= g ? w : 0;
+    }
+    /** Puts this alarm off until the gap has passed (one time, keeps its daily schedule). */
+    static void defer(Context c, Intent in, String kind, int code, long wait) {
+        long first = in.getLongExtra("dfrom", System.currentTimeMillis());
+        if (System.currentTimeMillis() - first > 90 * 60_000L) return; // waited long enough: give up quietly
+        Intent again = Scheduler.alarmIntent(c, kind, in.getStringExtra("id"), in.getStringExtra("title"), in.getIntExtra("h", 0), in.getIntExtra("m", 0), false);
+        int dc = 700000 + (code % 100000);
+        again.putExtra("code", dc);
+        again.putExtra("dfrom", first);
+        again.putExtra("orig", code);
+        Scheduler.setAt(c, dc, again, System.currentTimeMillis() + wait + 15_000L);
+    }
 
     /** Swiping the notification away stops its voice. */
     static PendingIntent hush(Context c) {

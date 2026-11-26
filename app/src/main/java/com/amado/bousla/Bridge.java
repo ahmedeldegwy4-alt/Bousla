@@ -198,6 +198,12 @@ public class Bridge {
     public boolean getSpeak() { return Speaker.enabled(c); }
 
     @JavascriptInterface
+    public void setGap(int minutes) { Store.p(c).edit().putInt("gap", Math.max(0, Math.min(60, minutes))).apply(); }
+
+    @JavascriptInterface
+    public int getGap() { return Store.p(c).getInt("gap", 10); }
+
+    @JavascriptInterface
     public void testSpeak() {
         Store.p(c).edit().putString("ttsStatus", "pending").apply();
         new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->

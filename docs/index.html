@@ -631,7 +631,13 @@ function speakCard(){
   if(!Android.setSpeak)return '<div class="card due"><h3>🔊 التنبيهات الناطقة</h3><div>نزّل آخر نسخة من التطبيق عشان التنبيهات تتقري بصوت.</div><div class="prow"><button class="gold" data-apk>تنزيل التحديث</button></div></div>';
   let on=true;try{on=Android.getSpeak();}catch(e){}
   return '<div class="card due"><h3>🔊 التنبيهات الناطقة</h3><div class="muted">التطبيق بيقول التنبيه بصوت أول ما يوصل. الصوت بيمشي على صوت الإشعارات، فلو الموبايل صامت مش هيتكلم.</div>'+
-    '<div class="prow"><button class="'+(on?'gold':'ghost')+'" data-speak="1">'+(on?'✓ ':'')+'شغّال</button><button class="'+(!on?'gold':'ghost')+'" data-speak="0">'+(!on?'✓ ':'')+'مقفول</button><button data-speaktest>▶ جرّب الصوت</button></div><div class="muted" id="speakMsg"></div></div>';
+    '<div class="prow"><button class="'+(on?'gold':'ghost')+'" data-speak="1">'+(on?'✓ ':'')+'شغّال</button><button class="'+(!on?'gold':'ghost')+'" data-speak="0">'+(!on?'✓ ':'')+'مقفول</button><button data-speaktest>▶ جرّب الصوت</button></div><div class="muted" id="speakMsg"></div></div>'+gapCard();
+}
+function gapCard(){
+  if(!Android.setGap)return '<div class="card due"><h3>⏳ مسافة بين الإشعارات</h3><div>نزّل آخر نسخة من التطبيق عشان الإشعارات تبقى متباعدة.</div><div class="prow"><button class="gold" data-apk>تنزيل التحديث</button></div></div>';
+  let g=10;try{g=Android.getGap();}catch(e){}
+  return '<div class="card"><h3>⏳ مسافة بين الإشعارات</h3><div class="muted">أقل وقت بين أي إشعارين. لو تنبيه عمل جه قريب من إشعار تاني، بيستنى لحد ما المسافة تعدّي. ولو ذكر جه قريب، بيتخطّى المرة دي. الأذان بييجي في وقته دايمًا.</div><div class="chips">'+
+    [[0,'من غير'],[5,'٥ د'],[10,'١٠ د'],[15,'١٥ د'],[20,'٢٠ د'],[30,'نص ساعة']].map(x=>'<span class="chip'+(g===x[0]?' on':'')+'" data-gap="'+x[0]+'">'+x[1]+'</span>').join('')+'</div></div>';
 }
 function speakTest(){
   const m=document.getElementById('speakMsg');try{Android.testSpeak();}catch(e){return;}
@@ -1439,7 +1445,7 @@ document.addEventListener('change',e=>{
   if(e.target.id==='qSurah'||e.target.id==='qReciter'||e.target.id==='qTafsir')loadSurah(document.getElementById('qSurah').value,document.getElementById('qReciter').value,document.getElementById('qTafsir').value);
 });
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-msh],[data-sub],[data-tj],[data-tjclose],[data-tjread],[data-tjext],[data-rd],[data-rdst],[data-rdsleep],[data-ad],[data-ads],[data-adp],[data-adplay],[data-hc],[data-wis],[data-bk],[data-mt],[data-mthz],[data-wtoggle],[data-wtype],[data-wday],[data-wstart],[data-wend],[data-wdel],[data-cmode],[data-qloc],[data-qlocset],[data-dk],[data-dkev],[data-dkoff],[data-dkph],[data-speak],[data-speaktest],[data-ttsset],[data-test],[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
+  const t=e.target.closest('[data-msh],[data-sub],[data-tj],[data-tjclose],[data-tjread],[data-tjext],[data-rd],[data-rdst],[data-rdsleep],[data-ad],[data-ads],[data-adp],[data-adplay],[data-hc],[data-wis],[data-bk],[data-mt],[data-mthz],[data-wtoggle],[data-wtype],[data-wday],[data-wstart],[data-wend],[data-wdel],[data-cmode],[data-qloc],[data-qlocset],[data-gap],[data-dk],[data-dkev],[data-dkoff],[data-dkph],[data-speak],[data-speaktest],[data-ttsset],[data-test],[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
   if(!t){if(e.target.id==='dlg')closeDlg();return;}
   const D=t.dataset;
   if(D.rd==='toggle'){rdToggle();return;}
@@ -1484,6 +1490,7 @@ document.addEventListener('click',e=>{
   if(D.dkev){setDhikr({every:+D.dkev});return;}
   if(D.dkoff){setDhikr({off:+D.dkoff});return;}
   if(D.dkph!==undefined){const ph=DHIKR_PHRASES[+D.dkph],l=dhikrCfg().list.slice();const i=l.indexOf(ph);if(i>=0){if(l.length>1)l.splice(i,1);}else l.push(ph);setDhikr({list:DHIKR_PHRASES.filter(x=>l.includes(x))});return;}
+  if(D.gap!==undefined){try{Android.setGap(+D.gap);}catch(e){}renderEdit();return;}
   if(D.speak!==undefined){try{Android.setSpeak(D.speak==='1');}catch(e){}renderEdit();return;}
   if(D.speaktest!==undefined){speakTest();return;}
   if(D.ttsset!==undefined){try{Android.openTtsSettings();}catch(e){}return;}
