@@ -1,7 +1,6 @@
 {
  "single": {
-  "pre_fajr": "https://elevenlabsusercontent.com/database/workspace/695bfc712a2545cd807b8ecb4083941f/content_generation/KpBn6QMRhVkLl85Zvqoz/UkpoeShCLNXNJBrpRnLo/content.mp3?Expires=1795708800&KeyName=assets-cdn-key-1&Signature=tPfwN4D6BdhuieN1rIucz4xsx90=",
-  "pre_dhuhr": "https://elevenlabsusercontent.com/database/workspace/695bfc712a2545cd807b8ecb4083941f/content_generation/JugTQQOq6gVldqvTaFNT/jj6KQ7qmwURPydAEN6Ea/content.mp3?Expires=1795708800&KeyName=assets-cdn-key-1&Signature=7u8Z4MKw6bPx7UwqDxneG1cAH8o=",
-  "pre_isha": "https://elevenlabsusercontent.com/database/workspace/695bfc712a2545cd807b8ecb4083941f/content_generation/rh5EDtQU2ZFFDzqwGyxa/dZ0c1FMoWvws4c28C70g/content.mp3?Expires=1795708800&KeyName=assets-cdn-key-1&Signature=Q6HQYD6wMt1AKRgZNzWC1WzxLIQ="
+  "pre_asr": "https://elevenlabsusercontent.com/database/workspace/695bfc712a2545cd807b8ecb4083941f/content_generation/GNPz09HbX0mVXXglZnub/EYNJFvuEK8sBJpRbDgN9/content.mp3?Expires=1795708800&KeyName=assets-cdn-key-1&Signature=NUCF7Gfgf8A7GOz5WLhHni2bS9o=",
+  "pre_maghrib": "https://elevenlabsusercontent.com/database/workspace/695bfc712a2545cd807b8ecb4083941f/content_generation/TMsAPalzSWBuAclW6B87/BOzBJAQi7lkXs0rsx9Pf/content.mp3?Expires=1795708800&KeyName=assets-cdn-key-1&Signature=DwwBjpmOXOHUD8dSTHr6OGlkAVY="
  }
 }
