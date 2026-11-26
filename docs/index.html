@@ -562,6 +562,11 @@ function renderToday(){
 
 /* ---------- review (المحاسبة) ---------- */
 let rvKey=null;
+// what was picked/typed in the review, kept so a redraw never wipes it
+function rvDraft(k){try{const all=JSON.parse(localStorage.getItem('rvDraft')||'{}');return all[k]||{};}catch(e){return {};}}
+function rvDraftSet(k,pid,field,val){try{const all=JSON.parse(localStorage.getItem('rvDraft')||'{}');all[k]=all[k]||{};all[k][pid]=Object.assign(all[k][pid]||{},{[field]:val});
+  Object.keys(all).forEach(x=>{if(x<ago(10))delete all[x];});localStorage.setItem('rvDraft',JSON.stringify(all));}catch(e){}}
+function rvDraftClear(k){try{const all=JSON.parse(localStorage.getItem('rvDraft')||'{}');delete all[k];localStorage.setItem('rvDraft',JSON.stringify(all));}catch(e){}}
 function renderReview(){
   const k=rvKey||today(),d=peek(k),r=d.review,el=document.getElementById('review');
   const label=k===today()?'النهاردة':(k===ago(1)?'امبارح':k);
@@ -577,10 +582,11 @@ function renderReview(){
     h+='<h2>اللي قصّرت فيه</h2>';
     if(r){h+='<div class="card">';miss.forEach(p=>{const it=(r.items||{})[p.id]||{};h+='<div class="rv"><b>'+esc(p.t)+'</b><div class="muted">السبب: '+esc(it.r||'—')+(it.fix?' · التعويض: '+esc(it.fix):'')+'</div></div>';});h+='</div>';}
     else{h+='<div class="card"><div class="muted">لكل سبب فاتك: اختار ليه، واكتب هتعوّضه إزاي بكرة. ما ينفعش تقفل المحاسبة من غير كده.</div>';
-      miss.forEach(p=>{h+='<div class="rv" data-mp="'+p.id+'"><b>'+esc(p.t)+'</b>'+(pSkip(p.id,k)?' <span class="tag lt">ماقدرتش</span>':'')+'<div class="chips">'+REASONS.map(x=>'<span class="chip" data-rchip="'+p.id+'" data-val="'+esc(x)+'">'+esc(x)+'</span>').join('')+'</div><input type="text" class="fix" data-fix="'+p.id+'" placeholder="هعوّض إزاي بكرة؟ (عمل محدد)"></div>';});
+      const dr=rvDraft(k);
+      miss.forEach(p=>{const it=dr[p.id]||{},ok=it.r&&(it.fix||'').trim().length>=2;h+='<div class="rv" data-mp="'+p.id+'"><b>'+(ok?'✅ ':'')+esc(p.t)+'</b>'+(pSkip(p.id,k)?' <span class="tag lt">ماقدرتش</span>':'')+'<div class="chips">'+REASONS.map(x=>'<span class="chip'+(it.r===x?' on':'')+'" data-rchip="'+p.id+'" data-rk="'+k+'" data-val="'+esc(x)+'">'+esc(x)+'</span>').join('')+'</div><input type="text" class="fix" data-fix="'+p.id+'" data-rk="'+k+'" value="'+esc(it.fix||'')+'" placeholder="هعوّض إزاي بكرة؟ (عمل محدد)"></div>';});
       h+='</div>';}
   }
-  if(!r){h+='<label class="f">كلمة لنفسك (اختياري)</label><textarea id="rvNote" placeholder="إيه اللي قرّبك وإيه اللي بعّدك النهاردة؟"></textarea><div class="err" id="rerr"></div><div class="prow"><button class="gold" data-closerv="'+k+'">اقفل المحاسبة</button></div>';}
+  if(!r){h+='<label class="f">كلمة لنفسك (اختياري)</label><textarea id="rvNote" data-rk="'+k+'" placeholder="إيه اللي قرّبك وإيه اللي بعّدك النهاردة؟">'+esc((rvDraft(k)._note||{}).t||'')+'</textarea><div class="err" id="rerr"></div><div class="prow"><button class="gold" data-closerv="'+k+'">اقفل محاسبة '+label+'</button></div>'+(miss.length?'<div class="muted">فاضل: '+AR(miss.filter(p=>{const it=rvDraft(k)[p.id]||{};return !(it.r&&(it.fix||'').trim().length>=2);}).length)+' من '+AR(miss.length)+'</div>':'');}
   else{h+=(r.note?'<div class="card"><div class="muted">كلمتك لنفسك:</div>'+esc(r.note)+'</div>':'')+'<div class="good">✓ المحاسبة متقفلة '+(r.late?'(متأخرة)':'')+'</div>';}
   // previous unreviewed
   const pend=[];for(let i=1;i<=7;i++){const kk=ago(i);if(days[kk]&&!days[kk].review&&kk!==k)pend.push(kk);}
@@ -591,15 +597,23 @@ function renderReview(){
 }
 function closeReview(k){
   const d=day(k),miss=PILLARS.filter(p=>!pDone(p.id,k)&&!pillarExcused(p.id,k)),items={};
+  const dr=rvDraft(k);
   for(const p of miss){
     const c=document.querySelector('.chip.on[data-rchip="'+p.id+'"]'),f=document.querySelector('[data-fix="'+p.id+'"]');
-    const fix=f?f.value.trim():'';
-    if(!c||fix.length<4){document.getElementById('rerr').textContent='كمّل: «'+p.t+'» — محتاج سبب وخطة تعويض.';const el=document.querySelector('[data-mp="'+p.id+'"]');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});return;}
-    items[p.id]={r:c.dataset.val,fix:fix.slice(0,200)};
+    const r=(c&&c.dataset.val)||(dr[p.id]||{}).r||'';
+    const fix=((f&&f.value)||(dr[p.id]||{}).fix||'').trim();
+    if(!r||fix.length<2){const msg='كمّل: «'+p.t+'» — '+(!r?'اختار السبب':'اكتب هتعوّضه إزاي')+'.';document.getElementById('rerr').textContent=msg;
+      const el=document.querySelector('[data-mp="'+p.id+'"]');if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.style.outline='2px solid #e46b6b';setTimeout(()=>el.style.outline='',2500);}
+      openDlg('<h3>لسه ناقص حاجة</h3><p>'+esc(msg)+'</p><div class="prow"><button class="gold" id="dlgX">تمام</button></div>');return;}
+    items[p.id]={r,fix:fix.slice(0,200)};
   }
   const n=document.getElementById('rvNote');
   d.review={at:Date.now(),items,note:n?n.value.trim().slice(0,500):'',late:k!==today()};
-  mark(k);render();window.scrollTo({top:0,behavior:'smooth'});
+  rvDraftClear(k);mark(k);try{lsSave();}catch(e){}try{syncNative();}catch(e){}
+  const label=k===today()?'النهاردة':(k===ago(1)?'امبارح':k);
+  const pend=[];for(let i=1;i<=7;i++){const kk=ago(i);if(days[kk]&&!days[kk].review)pend.push(kk);}
+  render();window.scrollTo({top:0,behavior:'smooth'});
+  openDlg('<h3>✓ اتقفلت محاسبة '+esc(label)+'</h3><p>'+(pend.length?'فاضل '+AR(pend.length)+' يوم لسه ما اتحاسبتش.':'جزاك الله خيرًا. «حاسبوا أنفسكم قبل أن تحاسبوا».')+'</p><div class="prow">'+(pend.length?'<button class="gold" data-rv="'+pend[pend.length-1]+'" id="dlgX">حاسب '+(pend[pend.length-1]===ago(1)?'امبارح':pend[pend.length-1])+'</button>':'')+'<button class="'+(pend.length?'ghost':'gold')+'" id="dlgX2">تمام</button></div>');
 }
 
 /* ---------- compass / stats ---------- */
@@ -1446,7 +1460,7 @@ document.addEventListener('change',e=>{
   if(e.target.id==='qSurah'||e.target.id==='qReciter'||e.target.id==='qTafsir')loadSurah(document.getElementById('qSurah').value,document.getElementById('qReciter').value,document.getElementById('qTafsir').value);
 });
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-msh],[data-sub],[data-tj],[data-tjclose],[data-tjread],[data-tjext],[data-rd],[data-rdst],[data-rdsleep],[data-ad],[data-adpre],[data-ads],[data-adp],[data-adplay],[data-hc],[data-wis],[data-bk],[data-mt],[data-mthz],[data-wtoggle],[data-wtype],[data-wday],[data-wstart],[data-wend],[data-wdel],[data-cmode],[data-qloc],[data-qlocset],[data-gap],[data-dk],[data-dkev],[data-dkoff],[data-dkph],[data-speak],[data-speaktest],[data-ttsset],[data-test],[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
+  const t=e.target.closest('#dlgX,#dlgX2,[data-msh],[data-sub],[data-tj],[data-tjclose],[data-tjread],[data-tjext],[data-rd],[data-rdst],[data-rdsleep],[data-ad],[data-adpre],[data-ads],[data-adp],[data-adplay],[data-hc],[data-wis],[data-bk],[data-mt],[data-mthz],[data-wtoggle],[data-wtype],[data-wday],[data-wstart],[data-wend],[data-wdel],[data-cmode],[data-qloc],[data-qlocset],[data-gap],[data-dk],[data-dkev],[data-dkoff],[data-dkph],[data-speak],[data-speaktest],[data-ttsset],[data-test],[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
   if(!t){if(e.target.id==='dlg')closeDlg();return;}
   const D=t.dataset;
   if(D.rd==='toggle'){rdToggle();return;}
@@ -1521,7 +1535,8 @@ document.addEventListener('click',e=>{
   if(D.undo){delete day(today()).done[D.undo];closeDlg();mark(today());render();return;}
   if(D.close!==undefined){closeDlg();return;}
   if(D.chip){t.classList.toggle('on');return;}
-  if(D.rchip){document.querySelectorAll('[data-rchip="'+D.rchip+'"]').forEach(c=>c.classList.remove('on'));t.classList.add('on');return;}
+  if(D.rchip){document.querySelectorAll('[data-rchip="'+D.rchip+'"]').forEach(c=>c.classList.remove('on'));t.classList.add('on');rvDraftSet(D.rk||rvKey||today(),D.rchip,'r',D.val);return;}
+  if(t.id==='dlgX'||t.id==='dlgX2'){closeDlg();if(D.rv){rvKey=D.rv;renderReview();show('review');}return;}
   if(D.prove){proveDlg(D.prove);return;}
   if(D.snooze){snooze[D.snooze]=Date.now()+30*60000;renderToday();return;}
   if(D.toggle){openPillar=openPillar===D.toggle?null:D.toggle;renderToday();return;}
@@ -1539,6 +1554,9 @@ document.addEventListener('click',e=>{
 document.addEventListener('visibilitychange',()=>{if(document.hidden)qiblaOff();else if(qbMode==='qibla'&&document.getElementById('v-compass').classList.contains('on'))qiblaOn();});
 let lastDay=today();
 setInterval(()=>{if(today()!==lastDay){lastDay=today();suggestFor=null;rvKey=null;render();}else renderToday();syncNative();renderHijri();if(document.getElementById('ptBox'))renderPrayerTimes();},60000);
+document.addEventListener('input',e=>{const t=e.target;if(!t||!t.dataset)return;
+  if(t.dataset.fix&&t.dataset.rk)rvDraftSet(t.dataset.rk,t.dataset.fix,'fix',t.value);
+  else if(t.id==='rvNote'&&t.dataset.rk)rvDraftSet(t.dataset.rk,'_note','t',t.value);});
 initDb();
 </script>
 </body>
