@@ -1099,14 +1099,14 @@ let rdNm='';function rdWatch(on){clearInterval(rdTimer);if(on)rdTimer=setInterva
 /* ---------- تبويب الصلاة: الأذان والتقويم الهجري ---------- */
 const SHEIKHS=[['refaat','الشيخ محمد رفعت'],['abdulbasit','الشيخ عبد الباسط عبد الصمد'],['minshawi','الشيخ محمد صديق المنشاوي']];
 const ADHAN_PR=[['fajr','الفجر'],['dhuhr','الظهر'],['asr','العصر'],['maghrib','المغرب'],['isha','العشاء']];
-function adhanCfg(){return Object.assign({on:true,sheikh:'refaat',prayers:{fajr:true,dhuhr:true,asr:true,maghrib:true,isha:true}},settings.adhan||{});}
+function adhanCfg(){return Object.assign({on:true,pre:10,sheikh:'refaat',prayers:{fajr:true,dhuhr:true,asr:true,maghrib:true,isha:true}},settings.adhan||{});}
 let adhanSent='';
 function syncAdhan(){
   if(!(window.Android&&Android.setAdhan)||!qbLoc)return;
   const c=ptCfg(),a=adhanCfg(),times=[],d=new Date();d.setHours(0,0,0,0);
   for(let i=0;i<30;i++){const day=new Date(d);day.setDate(d.getDate()+i);const t=ptCalc(day,qbLoc[0],qbLoc[1],c.method,c.asr);
     ADHAN_PR.forEach(([k,n])=>{if(t[k])times.push([t[k].getTime(),k,n]);});}
-  const json=JSON.stringify({on:a.on,sheikh:a.sheikh,prayers:a.prayers,times});
+  const json=JSON.stringify({on:a.on,pre:a.pre,sheikh:a.sheikh,prayers:a.prayers,times});
   const sig=json.slice(0,300)+times.length+(times[0]||[]).join();if(sig===adhanSent)return;adhanSent=sig;
   try{Android.setAdhan(json);}catch(e){}
 }
@@ -1118,6 +1118,7 @@ function renderAdhan(){
     '<label class="f">الصلوات</label><div class="chips">'+ADHAN_PR.map(([k,n])=>'<span class="chip'+(a.prayers[k]!==false?' on':'')+'" data-adp="'+k+'">'+n+'</span>').join('')+'</div>'+
     '<div class="prow"><button class="ghost" data-ad="stop">⏹ إيقاف الصوت</button></div>'+
     '<div class="muted">الأذان بيشتغل على صوت المنبّه. لو عايز توقفه وهو شغال، دوس «إيقاف الأذان» في الإشعار.</div></div>';
+  h+='<div class="card"><b>⏰ تنبيه «اقترب وقت الصلاة»</b><div class="muted">إشعار بصوت قبل كل أذان، عشان تلحق تتوضّى وتستعدّ. شغّال حتى لو الأذان مقفول.</div><div class="chips">'+[[0,'مقفول'],[5,'قبلها بـ٥ د'],[10,'قبلها بـ١٠ د'],[15,'قبلها بـ١٥ د'],[20,'قبلها بـ٢٠ د']].map(x=>'<span class="chip'+(a.pre===x[0]?' on':'')+'" data-adpre="'+x[0]+'">'+x[1]+'</span>').join('')+'</div></div>';
   el.innerHTML=h;
 }
 let adPreview=null;
@@ -1445,7 +1446,7 @@ document.addEventListener('change',e=>{
   if(e.target.id==='qSurah'||e.target.id==='qReciter'||e.target.id==='qTafsir')loadSurah(document.getElementById('qSurah').value,document.getElementById('qReciter').value,document.getElementById('qTafsir').value);
 });
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-msh],[data-sub],[data-tj],[data-tjclose],[data-tjread],[data-tjext],[data-rd],[data-rdst],[data-rdsleep],[data-ad],[data-ads],[data-adp],[data-adplay],[data-hc],[data-wis],[data-bk],[data-mt],[data-mthz],[data-wtoggle],[data-wtype],[data-wday],[data-wstart],[data-wend],[data-wdel],[data-cmode],[data-qloc],[data-qlocset],[data-gap],[data-dk],[data-dkev],[data-dkoff],[data-dkph],[data-speak],[data-speaktest],[data-ttsset],[data-test],[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
+  const t=e.target.closest('[data-msh],[data-sub],[data-tj],[data-tjclose],[data-tjread],[data-tjext],[data-rd],[data-rdst],[data-rdsleep],[data-ad],[data-adpre],[data-ads],[data-adp],[data-adplay],[data-hc],[data-wis],[data-bk],[data-mt],[data-mthz],[data-wtoggle],[data-wtype],[data-wday],[data-wstart],[data-wend],[data-wdel],[data-cmode],[data-qloc],[data-qlocset],[data-gap],[data-dk],[data-dkev],[data-dkoff],[data-dkph],[data-speak],[data-speaktest],[data-ttsset],[data-test],[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
   if(!t){if(e.target.id==='dlg')closeDlg();return;}
   const D=t.dataset;
   if(D.rd==='toggle'){rdToggle();return;}
@@ -1460,6 +1461,7 @@ document.addEventListener('click',e=>{
   if(D.ad==='toggle'){settings.adhan=Object.assign(adhanCfg(),{on:!adhanCfg().on});mark('settings');adhanSent='';syncAdhan();renderAdhan();return;}
   if(D.ad==='stop'){try{Android.stopAdhan();}catch(e){}try{adPreview&&adPreview.pause();}catch(e){}return;}
   if(D.ads){settings.adhan=Object.assign(adhanCfg(),{sheikh:D.ads});mark('settings');adhanSent='';syncAdhan();renderAdhan();return;}
+  if(D.adpre!==undefined){settings.adhan=Object.assign(adhanCfg(),{pre:+D.adpre});mark('settings');adhanSent='';syncAdhan();renderAdhan();return;}
   if(D.adp){const a=adhanCfg(),pr=Object.assign({},a.prayers);pr[D.adp]=pr[D.adp]===false;settings.adhan=Object.assign(a,{prayers:pr});mark('settings');adhanSent='';syncAdhan();renderAdhan();return;}
   if(D.adplay){adPlay(D.adplay);return;}
   if(D.hc){hcOff+=+D.hc;renderHijriCal();return;}

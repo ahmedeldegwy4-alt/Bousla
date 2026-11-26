@@ -65,6 +65,19 @@ public class AlarmReceiver extends BroadcastReceiver {
             return;
         }
 
+        if ("preadhan".equals(kind)) {
+            long when = in.getLongExtra("when", 0);
+            Scheduler.schedulePre(c);
+            if (when > 0 && System.currentTimeMillis() - when > 5 * 60 * 1000L) return;
+            String nm = title == null ? "" : title;
+            String say = "اقترب وقت صلاة " + nm + ".";
+            if (notifyPre(c, nm, in.getIntExtra("pre", 10))) {
+                mark(c);
+                if (Speaker.enabled(c)) Speaker.say(c, "pre_" + id, say, goAsync());
+            }
+            return;
+        }
+
         if ("wisdom".equals(kind)) {
             if (in.getBooleanExtra("daily", false)) Scheduler.scheduleWisdom(c);
             long w = waitMs(c);
@@ -200,6 +213,30 @@ public class AlarmReceiver extends BroadcastReceiver {
         return PendingIntent.getBroadcast(c, 7990, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
     static final String CH_WISDOM = "bousla_wisdom";
+    static final String CH_PRE = "bousla_pre";
+
+    static boolean notifyPre(Context c, String prayer, int mins) {
+        try {
+            if (Build.VERSION.SDK_INT >= 33 &&
+                    c.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return false;
+            NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(CH_PRE) == null) {
+                NotificationChannel ch = new NotificationChannel(CH_PRE, "قبل الصلاة", NotificationManager.IMPORTANCE_HIGH);
+                ch.setDescription("تنبيه قبل الأذان بدقايق");
+                nm.createNotificationChannel(ch);
+            }
+            Intent open = new Intent(c, MainActivity.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            open.putExtra("kind", "prayer"); open.putExtra("id", "");
+            PendingIntent pi = PendingIntent.getActivity(c, 7996, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, CH_PRE) : new Notification.Builder(c);
+            b.setSmallIcon(R.drawable.ic_stat).setContentTitle("🕌 اقترب وقت صلاة " + prayer)
+                    .setContentText("باقي " + Widgets.arDigits(String.valueOf(mins)) + " دقايق على الأذان. قوم اتوضّى واستعدّ.")
+                    .setAutoCancel(true).setDeleteIntent(hush(c)).setContentIntent(pi).setCategory(Notification.CATEGORY_REMINDER);
+            if (Build.VERSION.SDK_INT >= 26) b.setTimeoutAfter((mins + 5) * 60_000L);
+            nm.notify(7996, b.build());
+            return true;
+        } catch (Exception e) { return false; }
+    }
 
     static void startAdhan(Context c, String prayerName) {
         String sheikh = "refaat";

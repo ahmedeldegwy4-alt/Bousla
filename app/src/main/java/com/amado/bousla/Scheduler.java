@@ -54,9 +54,38 @@ final class Scheduler {
     static final int CODE_DHIKR = 900020;
     static final int CODE_WISDOM = 900030;
     static final int CODE_ADHAN = 900040;
+    static final int CODE_PRE = 900045;
 
     /** Next enabled prayer from the list of upcoming times the page computed. */
+    /** Reminder a few minutes before each prayer («اقترب وقت الصلاة»). */
+    static void schedulePre(Context c) {
+        AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
+        Intent i = alarmIntent(c, "preadhan", "", "", 0, 0, false);
+        i.putExtra("code", CODE_PRE);
+        am.cancel(broadcast(c, CODE_PRE, i));
+        try {
+            JSONObject a = new JSONObject(Store.p(c).getString("adhan", "{}"));
+            int pre = a.optInt("pre", 10);
+            if (pre <= 0) return;
+            JSONArray t = a.optJSONArray("times");
+            if (t == null) return;
+            long now = System.currentTimeMillis();
+            for (int k = 0; k < t.length(); k++) {
+                JSONArray e = t.getJSONArray(k);
+                long at = e.getLong(0) - pre * 60_000L;
+                if (at <= now + 5000) continue;
+                i.putExtra("id", e.getString(1));
+                i.putExtra("title", e.optString(2, ""));
+                i.putExtra("when", at);
+                i.putExtra("pre", pre);
+                setAt(c, CODE_PRE, i, at);
+                return;
+            }
+        } catch (Exception ignored) {}
+    }
+
     static void scheduleAdhan(Context c) {
+        schedulePre(c);
         AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
         Intent i = alarmIntent(c, "adhan", "", "", 0, 0, false);
         i.putExtra("code", CODE_ADHAN);
