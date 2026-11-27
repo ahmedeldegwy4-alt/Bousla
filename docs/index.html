@@ -156,6 +156,10 @@ body.compact header h1{font-size:21px}
 body.compact header p:not(#hijri){display:none}
 body.compact header #hijri{margin:0 auto 0 0!important;font-size:12.5px!important}
 body.compact .status{display:none}
+.chips.big .chip{font-size:17px;padding:10px 16px}
+.stepper{display:flex;align-items:center;justify-content:center;gap:18px;margin:10px 0}
+.stepper button{width:58px;height:58px;border-radius:50%;font-size:30px;font-weight:700;background:var(--card2);color:var(--gold2);border:1px solid var(--gold)}
+.stepper b{font-size:40px;min-width:90px;text-align:center}
 </style>
 </head>
 <body>
@@ -463,6 +467,43 @@ async function initDb(){
   }catch(e){clearTimeout(t);setStatus('محفوظ على الجهاز ده');}
 }
 
+
+/* ---------- الوضع السهل: من غير كتابة ---------- */
+const EASY_DEF=['✓ عملتها الحمد لله'];
+const NAMES=['الرحمن','الرحيم','الغفور','الرزّاق','الودود','اللطيف','الحليم','الكريم','السميع','البصير','الحفيظ','الوكيل','الشافي','القريب','المجيب'];
+const DUAS=['المغفرة','الهداية','الرزق','الشفاء','الأهل والأولاد','الجنة','الثبات على الدين','حاجة في نفسي'];
+const SINS=['ذنب من الكلام','ذنب من النظر','تقصير في صلاة','ذنب في معاملة','عادة سيئة','ذنب بيني وبين ربنا'];
+const QUICK={
+ p1a1:['فهمت المعنى العام','عرفت سبب النزول','فهمت كلمة كانت صعبة','خدت منها عمل هعمله'],
+ p1a2:['آية رحمة','آية تخويف','آية عن الجنة','آية عن النار','آية عن الصبر','آية فيها دعاء','قصة نبي'],
+ p1a3:['سورة قصيرة','جزء عمّ','سورة الكهف','سورة يس','سورة الملك','سورة الرحمن','سورة البقرة','سورة تانية'],
+ p1a4:['آية أو اتنين','ربع صفحة','نص صفحة','صفحة','أكتر من صفحة'],
+ p1a5:['سورة قصيرة','جزء عمّ','جزء تبارك','ربع حزب','حزب','أكتر'],
+ p2a4:['الاثنين','الخميس','الأيام البيض','قضاء','صيام تاني'],
+ p2a5:['فلوس','أكل','لبس','ساعدت حد','كلمة طيبة'],
+ p3a0:['آية الكرسي','المعوّذات','سيد الاستغفار','حسبي الله…','بسم الله الذي لا يضر…','رضيت بالله ربًّا','قلتها كلها'],
+ p3a1:['آية الكرسي','المعوّذات','سيد الاستغفار','حسبي الله…','بسم الله الذي لا يضر…','رضيت بالله ربًّا','قلتها كلها'],
+ p3a4:['آية الكرسي','المعوّذات','باسمك ربي وضعت جنبي','التسبيح والتحميد والتكبير','قلتها كلها'],
+ p3a6:['الحمد لله الذي أحيانا','قلت الذكر كامل'],
+ p4a0:['النوم','الأكل','الموبايل','الغضب','النظر','الكسل','حاجة تانية'],
+ p4a1:['قمت للصلاة','قريت قرآن بدل الراحة','ساعدت حد','صحيت بدري','حاجة تانية'],
+ p4a2:['غيبة','جدال','كذب','سخرية','كلام ملوش لازمة'],
+ p5a0:NAMES,p5a1:NAMES,p5a2:NAMES,
+ p6a0:['الصحة','الأهل','الأكل والشرب','الأمان','البيت','الرزق','النوم','الإسلام','الصلاة','الأصحاب','راحة البال','العافية'],
+ p6a1:['نعمة جديدة','فرج من همّ','نجاح','عافية','خبر حلو'],
+ p6a2:['الصحة في الصلاة','الفلوس في صدقة','الوقت في قرآن','اللسان في ذكر','الموبايل في سماع درس'],
+ p7a0:DUAS,p7a1:SINS,p8a1:DUAS,
+ p9a0:['درس في المسجد','درس على النت','مجلس ذكر','خطبة','برنامج ديني'],
+ p9a1:['اتكلمنا في الدين','نصحني أو نصحته','صلينا مع بعض','ذكّرني بالله'],
+ p9a2:['سيرة النبي ﷺ','قصة صحابي','محاضرة','كتاب نافع'],
+ p10a1:SINS,
+ p10a2:['محتوى على الموبايل','مكان','صحبة','أغاني','مسلسل أو فيلم']
+};
+const FIXES=['هعمله بدري الصبح','هحط له منبّه','هعمله بعد أول صلاة','هبدأ بحاجة صغيرة','هستعين بالله وأحاول تاني'];
+function easy(){return settings.easy!==false;}
+function quickFor(a){return QUICK[a.id]||EASY_DEF;}
+function countPresets(a){if(a.max!=null)return [0,15,30,45,60];const m=a.min||1;if(m>=10)return [m,m*2,m*3,m*5,m*10];return [1,2,3,4,5,6,8,10,12].filter(x=>x>=m||x===1);}
+
 /* ---------- proof dialog ---------- */
 function openDlg(html){const d=document.getElementById('dlg');document.getElementById('dlgIn').innerHTML=html;d.classList.add('on');}
 function closeDlg(){document.getElementById('dlg').classList.remove('on');}
@@ -474,25 +515,40 @@ function proveDlg(aid,ctx){
   let body='';
   if(dlgCtx.prefix)body+='<div class="qref">'+esc(dlgCtx.prefix)+'</div>'+(dlgCtx.append&&prev?'<div class="muted">هيتضاف لتدبّرك السابق النهاردة.</div>':'');
   const tv=dlgCtx.pre!=null?dlgCtx.pre:(prev&&!dlgCtx.append?prev.v:'');
+  if(easy()&&(a.k==='text'||a.k==='list')){
+    const q=quickFor(a),need=a.k==='list'?(a.n||3):1;
+    body+='<div class="muted">'+(need>1?'اختار '+AR(need)+' على الأقل':'اختار اللي ينطبق')+'</div><div class="chips big">'+q.map(o=>'<span class="chip" data-chip="'+esc(o)+'">'+esc(o)+'</span>').join('')+'</div>';
+  } else {
   if(a.k==='text')body+='<textarea id="pv" placeholder="'+(dlgCtx.ph||'اكتب هنا…')+'">'+esc(tv)+'</textarea>';
-  if(a.k==='count')body+='<input type="number" inputmode="numeric" id="pv" value="'+esc(tv)+'" placeholder="'+(a.max!=null?'الحد: '+AR(a.max):'أقل حاجة: '+AR(a.min||1))+'">';
   if(a.k==='list'){const v=prev?prev.v:[];for(let i=0;i<(a.n||3);i++)body+='<input type="text" class="pl" style="margin:4px 0" placeholder="'+AR(i+1)+'." value="'+esc(v[i]||'')+'">';}
+  }
+  if(a.k==='count'){
+    if(easy()){const start=tv!==''&&tv!=null?+tv:(a.max!=null?0:(a.min||1));
+      body+='<div class="stepper"><button type="button" data-step="-1">−</button><b id="pvShow">'+AR(start)+'</b><button type="button" data-step="1">+</button></div><input type="hidden" id="pv" value="'+start+'">'+
+        '<div class="chips big" style="justify-content:center">'+countPresets(a).map(x=>'<span class="chip" data-setc="'+x+'">'+AR(x)+'</span>').join('')+'</div>';}
+    else body+='<input type="number" inputmode="numeric" id="pv" value="'+esc(tv)+'" placeholder="'+(a.max!=null?'الحد: '+AR(a.max):'أقل حاجة: '+AR(a.min||1))+'">';
+  }
   if(a.k==='choice'){const v=prev?prev.v:[];body+='<div class="chips">'+a.opts.map(o=>'<span class="chip'+(v.includes(o)?' on':'')+'" data-chip="'+esc(o)+'">'+esc(o)+'</span>').join('')+'</div>';}
   const h=new Date().getHours();
   const note=a.w&&!inWin(a.w,h)?'<div class="muted" style="color:var(--warn)">ملاحظة: إنت برّه وقته ('+winTxt(a.w)+') — هيتسجل «متأخر».</div>':'';
   openDlg('<h3>'+esc(a.t)+'</h3><div class="muted">الإثبات: '+esc(a.q)+'</div>'+note+'<div style="margin-top:8px">'+body+'</div><div class="err" id="perr"></div>'+
-    '<div class="prow"><button class="gold" data-save="'+aid+'">سجّل بالإثبات</button>'+(prev?'<button class="warn" data-undo="'+aid+'">إلغاء التسجيل</button>':'')+'<button class="ghost" data-close>لسه</button></div>');
+    '<div class="prow"><button class="gold" data-save="'+aid+'">'+(easy()?'✓ سجّل':'سجّل بالإثبات')+'</button>'+(prev?'<button class="warn" data-undo="'+aid+'">إلغاء التسجيل</button>':'')+'<button class="ghost" data-close>لسه</button></div>');
 }
 function saveProof(aid){
   const a=allActs().find(x=>x.id===aid);const err=m=>document.getElementById('perr').textContent=m;let v;
-  if(a.k==='text'){v=document.getElementById('pv').value.trim();if(v.length<(a.min||3))return err('الإثبات قصير — اكتب على الأقل '+AR(a.min||3)+' حروف بصدق.');v=v.slice(0,600);
+  if(easy()&&(a.k==='text'||a.k==='list')){const sel=[...document.querySelectorAll('#dlgIn .chip.on')].map(c=>c.dataset.chip),need=a.k==='list'?(a.n||3):1;
+    if(sel.length<need)return err(need>1?'اختار '+AR(need)+' على الأقل.':'اختار حاجة واحدة على الأقل.');
+    v=a.k==='list'?sel:sel.join('، ');
+    if(a.k==='text'){if(dlgCtx.prefix)v=dlgCtx.prefix+' — '+v;const pr=peek(today()).done[aid];if(dlgCtx.append&&pr&&pr.v)v=(pr.v+'\n'+v).slice(-1500);}
+  }
+  else if(a.k==='text'){v=document.getElementById('pv').value.trim();if(v.length<(a.min||3))return err('الإثبات قصير — اكتب على الأقل '+AR(a.min||3)+' حروف بصدق.');v=v.slice(0,600);
     if(dlgCtx.prefix)v=dlgCtx.prefix+' — '+v;
     const pr=peek(today()).done[aid];if(dlgCtx.append&&pr&&pr.v)v=(pr.v+'\n'+v).slice(-1500);}
   if(a.k==='count'){v=Number(document.getElementById('pv').value);if(!isFinite(v)||document.getElementById('pv').value==='')return err('اكتب رقم.');
     if(a.max!=null&&v>a.max)return err('ده أكتر من الحد ('+AR(a.max)+'). ما يتحسبش — جاهد نفسك بكرة.');
     if(a.min!=null&&v<a.min)return err('لسه أقل من المطلوب ('+AR(a.min)+'). كمّل وارجع سجّل.');}
-  if(a.k==='list'){v=[...document.querySelectorAll('.pl')].map(i=>i.value.trim()).filter(Boolean).map(s=>s.slice(0,120));if(v.length<(a.n||3))return err('محتاج '+AR(a.n||3)+' حاجات محددة.');}
-  if(a.k==='choice'){v=[...document.querySelectorAll('.chip.on')].map(c=>c.dataset.chip);if(v.length<(a.min||1))return err(a.min===a.opts.length?'لازم كلهم عشان يتحسب. اللي فاتك اقضيه واستغفر.':'علّم على واحدة على الأقل.');}
+  if(a.k==='list'&&!easy()){v=[...document.querySelectorAll('.pl')].map(i=>i.value.trim()).filter(Boolean).map(s=>s.slice(0,120));if(v.length<(a.n||3))return err('محتاج '+AR(a.n||3)+' حاجات محددة.');}
+  if(a.k==='choice'){v=[...document.querySelectorAll('#dlgIn .chip.on')].map(c=>c.dataset.chip);if(v.length<(a.min||1))return err(a.min===a.opts.length?'لازم كلهم عشان يتحسب. اللي فاتك اقضيه واستغفر.':'علّم على واحدة على الأقل.');}
   const h=new Date().getHours();
   day(today()).done[aid]={at:Date.now(),v,late:!!(a.w&&!inWin(a.w,h))};
   delete snooze[aid];closeDlg();mark(today());render();
@@ -581,12 +637,13 @@ function renderReview(){
   if(miss.length){
     h+='<h2>اللي قصّرت فيه</h2>';
     if(r){h+='<div class="card">';miss.forEach(p=>{const it=(r.items||{})[p.id]||{};h+='<div class="rv"><b>'+esc(p.t)+'</b><div class="muted">السبب: '+esc(it.r||'—')+(it.fix?' · التعويض: '+esc(it.fix):'')+'</div></div>';});h+='</div>';}
-    else{h+='<div class="card"><div class="muted">لكل سبب فاتك: اختار ليه، واكتب هتعوّضه إزاي بكرة. ما ينفعش تقفل المحاسبة من غير كده.</div>';
+    else{h+='<div class="card"><div class="muted">لكل سبب فاتك: اختار ليه، و'+(easy()?'اختار':'اكتب')+' هتعوّضه إزاي بكرة. ما ينفعش تقفل المحاسبة من غير كده.</div>';
       const dr=rvDraft(k);
-      miss.forEach(p=>{const it=dr[p.id]||{},ok=it.r&&(it.fix||'').trim().length>=2;h+='<div class="rv" data-mp="'+p.id+'"><b>'+(ok?'✅ ':'')+esc(p.t)+'</b>'+(pSkip(p.id,k)?' <span class="tag lt">ماقدرتش</span>':'')+'<div class="chips">'+REASONS.map(x=>'<span class="chip'+(it.r===x?' on':'')+'" data-rchip="'+p.id+'" data-rk="'+k+'" data-val="'+esc(x)+'">'+esc(x)+'</span>').join('')+'</div><input type="text" class="fix" data-fix="'+p.id+'" data-rk="'+k+'" value="'+esc(it.fix||'')+'" placeholder="هعوّض إزاي بكرة؟ (عمل محدد)"></div>';});
+      if(miss.length>1)h+='<div class="prow" style="margin:6px 0"><button class="ghost" data-rvall="'+k+'">📋 نفس اختيار أول سبب للباقي كله</button></div>';
+      miss.forEach(p=>{const it=dr[p.id]||{},ok=it.r&&(it.fix||'').trim().length>=2;h+='<div class="rv" data-mp="'+p.id+'"><b>'+(ok?'✅ ':'')+esc(p.t)+'</b>'+(pSkip(p.id,k)?' <span class="tag lt">ماقدرتش</span>':'')+'<div class="chips">'+REASONS.map(x=>'<span class="chip'+(it.r===x?' on':'')+'" data-rchip="'+p.id+'" data-rk="'+k+'" data-val="'+esc(x)+'">'+esc(x)+'</span>').join('')+'</div>'+(easy()?'<div class="muted" style="margin-top:6px">هتعوّضه إزاي؟</div><div class="chips">'+FIXES.map(x=>'<span class="chip fixc'+(it.fix===x?' on':'')+'" data-fchip="'+p.id+'" data-rk="'+k+'" data-val="'+esc(x)+'">'+esc(x)+'</span>').join('')+'</div>':'<input type="text" class="fix" data-fix="'+p.id+'" data-rk="'+k+'" value="'+esc(it.fix||'')+'" placeholder="هعوّض إزاي بكرة؟ (عمل محدد)">')+'</div>';});
       h+='</div>';}
   }
-  if(!r){h+='<label class="f">كلمة لنفسك (اختياري)</label><textarea id="rvNote" data-rk="'+k+'" placeholder="إيه اللي قرّبك وإيه اللي بعّدك النهاردة؟">'+esc((rvDraft(k)._note||{}).t||'')+'</textarea><div class="err" id="rerr"></div><div class="prow"><button class="gold" data-closerv="'+k+'">اقفل محاسبة '+label+'</button></div>'+(miss.length?'<div class="muted">فاضل: '+AR(miss.filter(p=>{const it=rvDraft(k)[p.id]||{};return !(it.r&&(it.fix||'').trim().length>=2);}).length)+' من '+AR(miss.length)+'</div>':'');}
+  if(!r){h+=(easy()?'':'<label class="f">كلمة لنفسك (اختياري)</label>')+'<textarea id="rvNote"'+(easy()?' style="display:none"':'')+'" data-rk="'+k+'" placeholder="إيه اللي قرّبك وإيه اللي بعّدك النهاردة؟">'+esc((rvDraft(k)._note||{}).t||'')+'</textarea><div class="err" id="rerr"></div><div class="prow"><button class="gold" data-closerv="'+k+'">اقفل محاسبة '+label+'</button></div>'+(miss.length?'<div class="muted">فاضل: '+AR(miss.filter(p=>{const it=rvDraft(k)[p.id]||{};return !(it.r&&(it.fix||'').trim().length>=2);}).length)+' من '+AR(miss.length)+'</div>':'');}
   else{h+=(r.note?'<div class="card"><div class="muted">كلمتك لنفسك:</div>'+esc(r.note)+'</div>':'')+'<div class="good">✓ المحاسبة متقفلة '+(r.late?'(متأخرة)':'')+'</div>';}
   // previous unreviewed
   const pend=[];for(let i=1;i<=7;i++){const kk=ago(i);if(days[kk]&&!days[kk].review&&kk!==k)pend.push(kk);}
@@ -601,8 +658,9 @@ function closeReview(k){
   for(const p of miss){
     const c=document.querySelector('.chip.on[data-rchip="'+p.id+'"]'),f=document.querySelector('[data-fix="'+p.id+'"]');
     const r=(c&&c.dataset.val)||(dr[p.id]||{}).r||'';
-    const fix=((f&&f.value)||(dr[p.id]||{}).fix||'').trim();
-    if(!r||fix.length<2){const msg='كمّل: «'+p.t+'» — '+(!r?'اختار السبب':'اكتب هتعوّضه إزاي')+'.';document.getElementById('rerr').textContent=msg;
+    const fc=document.querySelector('.chip.on[data-fchip="'+p.id+'"]');
+    const fix=((fc&&fc.dataset.val)||(f&&f.value)||(dr[p.id]||{}).fix||'').trim();
+    if(!r||fix.length<2){const msg='كمّل: «'+p.t+'» — '+(!r?'اختار السبب':(easy()?'اختار هتعوّضه إزاي':'اكتب هتعوّضه إزاي'))+'.';document.getElementById('rerr').textContent=msg;
       const el=document.querySelector('[data-mp="'+p.id+'"]');if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.style.outline='2px solid #e46b6b';setTimeout(()=>el.style.outline='',2500);}
       openDlg('<h3>لسه ناقص حاجة</h3><p>'+esc(msg)+'</p><div class="prow"><button class="gold" id="dlgX">تمام</button></div>');return;}
     items[p.id]={r,fix:fix.slice(0,200)};
@@ -645,8 +703,9 @@ function speakCard(){
   if(!Android.setSpeak)return '<div class="card due"><h3>🔊 التنبيهات الناطقة</h3><div>نزّل آخر نسخة من التطبيق عشان التنبيهات تتقري بصوت.</div><div class="prow"><button class="gold" data-apk>تنزيل التحديث</button></div></div>';
   let on=true;try{on=Android.getSpeak();}catch(e){}
   return '<div class="card due"><h3>🔊 التنبيهات الناطقة</h3><div class="muted">التطبيق بيقول التنبيه بصوت أول ما يوصل. الصوت بيمشي على صوت الإشعارات، فلو الموبايل صامت مش هيتكلم.</div>'+
-    '<div class="prow"><button class="'+(on?'gold':'ghost')+'" data-speak="1">'+(on?'✓ ':'')+'شغّال</button><button class="'+(!on?'gold':'ghost')+'" data-speak="0">'+(!on?'✓ ':'')+'مقفول</button><button data-speaktest>▶ جرّب الصوت</button></div><div class="muted" id="speakMsg"></div></div>'+gapCard();
+    '<div class="prow"><button class="'+(on?'gold':'ghost')+'" data-speak="1">'+(on?'✓ ':'')+'شغّال</button><button class="'+(!on?'gold':'ghost')+'" data-speak="0">'+(!on?'✓ ':'')+'مقفول</button><button data-speaktest>▶ جرّب الصوت</button></div><div class="muted" id="speakMsg"></div></div>'+easyCard()+gapCard();
 }
+function easyCard(){return '<div class="card"><h3>👴 الوضع السهل (من غير كتابة)</h3><div class="muted">الإثبات والمحاسبة بالاختيارات وعلامة ✓ بس، والأرقام بزرار + و −. مناسب لكبار السن.</div><div class="chips big"><span class="chip'+(easy()?' on':'')+'" data-easy="1">✓ شغّال</span><span class="chip'+(!easy()?' on':'')+'" data-easy="0">بالكتابة</span></div></div>';}
 function gapCard(){
   if(!Android.setGap)return '<div class="card due"><h3>⏳ مسافة بين الإشعارات</h3><div>نزّل آخر نسخة من التطبيق عشان الإشعارات تبقى متباعدة.</div><div class="prow"><button class="gold" data-apk>تنزيل التحديث</button></div></div>';
   let g=10;try{g=Android.getGap();}catch(e){}
@@ -1460,7 +1519,7 @@ document.addEventListener('change',e=>{
   if(e.target.id==='qSurah'||e.target.id==='qReciter'||e.target.id==='qTafsir')loadSurah(document.getElementById('qSurah').value,document.getElementById('qReciter').value,document.getElementById('qTafsir').value);
 });
 document.addEventListener('click',e=>{
-  const t=e.target.closest('#dlgX,#dlgX2,[data-msh],[data-sub],[data-tj],[data-tjclose],[data-tjread],[data-tjext],[data-rd],[data-rdst],[data-rdsleep],[data-ad],[data-adpre],[data-ads],[data-adp],[data-adplay],[data-hc],[data-wis],[data-bk],[data-mt],[data-mthz],[data-wtoggle],[data-wtype],[data-wday],[data-wstart],[data-wend],[data-wdel],[data-cmode],[data-qloc],[data-qlocset],[data-gap],[data-dk],[data-dkev],[data-dkoff],[data-dkph],[data-speak],[data-speaktest],[data-ttsset],[data-test],[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
+  const t=e.target.closest('[data-rvall],[data-easy],[data-fchip],[data-step],[data-setc],#dlgX,#dlgX2,[data-msh],[data-sub],[data-tj],[data-tjclose],[data-tjread],[data-tjext],[data-rd],[data-rdst],[data-rdsleep],[data-ad],[data-adpre],[data-ads],[data-adp],[data-adplay],[data-hc],[data-wis],[data-bk],[data-mt],[data-mthz],[data-wtoggle],[data-wtype],[data-wday],[data-wstart],[data-wend],[data-wdel],[data-cmode],[data-qloc],[data-qlocset],[data-gap],[data-dk],[data-dkev],[data-dkoff],[data-dkph],[data-speak],[data-speaktest],[data-ttsset],[data-test],[data-zk],[data-adcat],[data-adlog],[data-adreset],[data-qmode],[data-hz],[data-hzall],[data-qplay],[data-qtaf],[data-qtdb],[data-qlog],#qPlayAll,#qPause,#qTafAll,[data-apk],[data-prove],[data-save],[data-undo],[data-close],[data-chip],[data-rchip],[data-snooze],[data-toggle],[data-etoggle],[data-skip],[data-unskip],[data-rv],[data-closerv],[data-del],[data-add],#sgClose,nav button,#resetActs,#dlgOk');
   if(!t){if(e.target.id==='dlg')closeDlg();return;}
   const D=t.dataset;
   if(D.rd==='toggle'){rdToggle();return;}
@@ -1506,6 +1565,7 @@ document.addEventListener('click',e=>{
   if(D.dkev){setDhikr({every:+D.dkev});return;}
   if(D.dkoff){setDhikr({off:+D.dkoff});return;}
   if(D.dkph!==undefined){const ph=DHIKR_PHRASES[+D.dkph],l=dhikrCfg().list.slice();const i=l.indexOf(ph);if(i>=0){if(l.length>1)l.splice(i,1);}else l.push(ph);setDhikr({list:DHIKR_PHRASES.filter(x=>l.includes(x))});return;}
+  if(D.easy!==undefined){settings.easy=D.easy==='1';mark('settings');render();return;}
   if(D.gap!==undefined){try{Android.setGap(+D.gap);}catch(e){}renderEdit();return;}
   if(D.speak!==undefined){try{Android.setSpeak(D.speak==='1');}catch(e){}renderEdit();return;}
   if(D.speaktest!==undefined){speakTest();return;}
@@ -1535,6 +1595,12 @@ document.addEventListener('click',e=>{
   if(D.undo){delete day(today()).done[D.undo];closeDlg();mark(today());render();return;}
   if(D.close!==undefined){closeDlg();return;}
   if(D.chip){t.classList.toggle('on');return;}
+  if(D.rvall){const k=D.rvall,dr=rvDraft(k),miss=PILLARS.filter(p=>!pDone(p.id,k)&&!pillarExcused(p.id,k)),f=dr[miss[0].id]||{};
+    if(!f.r||!f.fix){openDlg('<h3>اختار الأول</h3><p>اختار السبب والتعويض لأول سبب، وبعدين دوس الزرار ده.</p><div class="prow"><button class="gold" id="dlgX">تمام</button></div>');return;}
+    miss.forEach(p=>{rvDraftSet(k,p.id,'r',f.r);rvDraftSet(k,p.id,'fix',f.fix);});renderReview();return;}
+  if(D.fchip){document.querySelectorAll('[data-fchip="'+D.fchip+'"]').forEach(c=>c.classList.remove('on'));t.classList.add('on');rvDraftSet(D.rk||rvKey||today(),D.fchip,'fix',D.val);return;}
+  if(D.step!==undefined){const i=document.getElementById('pv');const v=Math.max(0,(+i.value||0)+(+D.step));i.value=v;document.getElementById('pvShow').textContent=AR(v);return;}
+  if(D.setc!==undefined){const i=document.getElementById('pv');i.value=D.setc;document.getElementById('pvShow').textContent=AR(+D.setc);document.querySelectorAll('[data-setc]').forEach(c=>c.classList.toggle('on',c===t));return;}
   if(D.rchip){document.querySelectorAll('[data-rchip="'+D.rchip+'"]').forEach(c=>c.classList.remove('on'));t.classList.add('on');rvDraftSet(D.rk||rvKey||today(),D.rchip,'r',D.val);return;}
   if(t.id==='dlgX'||t.id==='dlgX2'){closeDlg();if(D.rv){rvKey=D.rv;renderReview();show('review');}return;}
   if(D.prove){proveDlg(D.prove);return;}
